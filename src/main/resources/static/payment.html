@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Payment</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --border: #e8e4dc;
+    --accent: #2d6a4f;
+    --accent-light: rgba(45,106,79,0.08);
+    --accent-border: rgba(45,106,79,0.35);
+    --text: #1a1a1a;
+    --muted: #888;
+    --red: #e06c6c;
+    --red-dim: rgba(224,108,108,0.1);
+    --success: #2d6a4f;
+    --success-dim: rgba(45,106,79,0.08);
+  }
+
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── Nav ── */
+  nav {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 40px; display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: sticky; top: 0; z-index: 10;
+    box-shadow: 0 1px 20px rgba(0,0,0,0.04);
+  }
+  .nav-logo { font-family: 'DM Serif Display', serif; font-size: 22px; display: flex; align-items: center; gap: 8px; }
+  .nav-logo span { width:30px;height:30px;background:var(--accent);border-radius:8px;display:grid;place-items:center;color:white;font-size:14px; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .back-btn {
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 16px; font-family: 'DM Sans', sans-serif; font-size: 13px;
+    color: var(--muted); cursor: pointer; transition: all 0.2s;
+  }
+  .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Steps bar ── */
+  .steps {
+    max-width: 700px; margin: 32px auto 0; padding: 0 40px;
+    display: flex; align-items: center; gap: 0;
+  }
+  .step {
+    display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500;
+  }
+  .step-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; font-size: 12px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .step.done .step-dot  { background: var(--accent); color: white; }
+  .step.active .step-dot { background: var(--accent); color: white; box-shadow: 0 0 0 4px var(--accent-light); }
+  .step.idle .step-dot  { background: var(--border); color: var(--muted); }
+  .step.done  .step-label { color: var(--accent); }
+  .step.active .step-label { color: var(--text); font-weight: 600; }
+  .step.idle  .step-label { color: var(--muted); }
+  .step-line { flex: 1; height: 2px; background: var(--border); margin: 0 8px; min-width: 40px; }
+  .step-line.done { background: var(--accent); }
+
+  /* ── Page layout ── */
+  .page {
+    max-width: 900px; margin: 32px auto 80px; padding: 0 40px;
+    display: grid; grid-template-columns: 1fr 300px; gap: 28px; align-items: start;
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px; animation: fadeUp 0.4s ease both;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+
+  .card-title {
+    font-family: 'DM Serif Display', serif; font-size: 20px; font-weight: 400;
+    margin-bottom: 6px;
+  }
+  .card-title em { font-style: italic; color: var(--accent); }
+  .card-sub { font-size: 13px; color: var(--muted); margin-bottom: 24px; font-weight: 300; }
+
+  /* ── Payment method grid ── */
+  .methods-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .method-card {
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    user-select: none;
+    background: var(--surface);
+  }
+  .method-card:hover { border-color: #c8e6c9; background: #fafff9; }
+
+  /* Selected state */
+  .method-card.selected {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    box-shadow: 0 0 0 1px var(--accent);
+  }
+
+  .method-check {
+    position: absolute;
+    top: 10px; right: 10px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: white;
+    display: grid; place-items: center;
+    transition: all 0.2s;
+    font-size: 10px;
+  }
+  .method-card.selected .method-check {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .method-logo {
+    width: 52px; height: 52px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+  .method-name {
+    font-size: 13px; font-weight: 600; text-align: center; color: var(--text);
+  }
+  .method-tag {
+    font-size: 10px; color: var(--muted); font-weight: 400;
+  }
+
+  /* Method brand colors */
+  .logo-phonepe  { background: #f0ebff; }
+  .logo-gpay     { background: #e8f0fe; }
+  .logo-paytm    { background: #e8f7ff; }
+  .logo-upi      { background: #fff3e0; }
+  .logo-card     { background: #fce4ec; }
+  .logo-netbank  { background: #e8f5e9; }
+  .logo-cod      { background: #f3e5f5; }
+  .logo-wallet   { background: #fff8e1; }
+
+  /* ── OTP section (hidden by default) ── */
+  .otp-section {
+    border-top: 1px solid var(--border);
+    padding-top: 24px;
+    animation: fadeUp 0.35s ease both;
+  }
+
+  .otp-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  }
+  .otp-method-badge {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--accent-light); border: 1px solid var(--accent-border);
+    border-radius: 8px; padding: 8px 14px;
+    font-size: 13px; font-weight: 500; color: var(--accent);
+  }
+
+  .send-otp-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .send-otp-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .send-otp-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+  /* ── OTP input row (appears after send) ── */
+  .otp-input-row {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 20px;
+    animation: fadeUp 0.3s ease both;
+  }
+  .otp-input-row.show { display: flex; }
+
+  .otp-digits {
+    display: flex; gap: 10px; justify-content: center;
+  }
+  .otp-digit {
+    width: 52px; height: 56px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    font-size: 22px; font-weight: 600;
+    font-family: 'DM Serif Display', serif;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color: var(--text);
+    background: white;
+  }
+  .otp-digit:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-light);
+  }
+
+  .otp-hint {
+    text-align: center; font-size: 12px; color: var(--muted);
+  }
+  .otp-hint span { color: var(--accent); cursor: pointer; font-weight: 500; }
+  .otp-hint span:hover { text-decoration: underline; }
+
+  .pay-now-btn {
+    width: 100%;
+    padding: 15px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px; font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pay-now-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .pay-now-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .pay-now-btn .spinner {
+    display: none; width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+  .pay-now-btn.loading .btn-text { display: none; }
+  .pay-now-btn.loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Order summary card ── */
+  .summary-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 24px; position: sticky; top: 84px;
+    animation: fadeUp 0.4s ease 0.1s both;
+  }
+  .summary-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 18px; }
+  .summary-row { display:flex;justify-content:space-between;font-size:14px;margin-bottom:10px;color:var(--muted); }
+  .summary-row strong { color: var(--text); }
+  .summary-divider { border:none;border-top:1px solid var(--border);margin:14px 0; }
+  .summary-total { display:flex;justify-content:space-between;font-size:17px;font-weight:600; }
+  .summary-total span:last-child { font-family:'DM Serif Display',serif;font-size:20px;color:var(--accent); }
+  .secure-badges {
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .badge-row { display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted); }
+
+  /* ── Success overlay ── */
+  .success-overlay {
+    position: fixed; inset: 0;
+    background: rgba(247,245,240,0.96);
+    display: none; place-items: center;
+    z-index: 200;
+    flex-direction: column;
+    text-align: center;
+  }
+  .success-overlay.show { display: flex; }
+  .success-circle {
+    width: 90px; height: 90px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font-size: 40px;
+    margin-bottom: 24px;
+    animation: popIn 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes popIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+  .success-title { font-family:'DM Serif Display',serif;font-size:32px;margin-bottom:8px; }
+  .success-title em { font-style:italic;color:var(--accent); }
+  .success-sub { color:var(--muted);font-size:15px;margin-bottom:32px;font-weight:300; }
+  .success-order { background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 28px;margin-bottom:32px; }
+  .success-order .label { font-size:12px;color:var(--muted);margin-bottom:4px; }
+  .success-order .order-id { font-family:'DM Serif Display',serif;font-size:22px;color:var(--accent); }
+  .success-cta { padding:13px 36px;background:var(--accent);color:white;border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s; }
+  .success-cta:hover { opacity:.88; }
+
+  /* ── Toast ── */
+  .toast { position:fixed;bottom:28px;right:28px;background:var(--text);color:white;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;transform:translateY(12px);transition:all 0.3s;pointer-events:none;z-index:999; }
+  .toast.show { opacity:1;transform:translateY(0); }
+
+  /* COD note */
+  .cod-note {
+    background: #fff8e1; border: 1px solid #ffe082;
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 13px; color: #795548;
+    margin-top: 16px; display: none;
+  }
+  .cod-note.show { display: block; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo"><span>✦</span> Karim</div>
+  <div class="nav-right">
+    <button class="back-btn" onclick="window.location.href='cart.html'">← Back to Cart</button>
+  </div>
+</nav>
+
+<!-- Steps -->
+<div class="steps">
+  <div class="step done">
+    <div class="step-dot">✓</div>
+    <span class="step-label">Cart</span>
+  </div>
+  <div class="step-line done"></div>
+  <div class="step active">
+    <div class="step-dot">2</div>
+    <span class="step-label">Payment</span>
+  </div>
+  <div class="step-line"></div>
+  <div class="step idle">
+    <div class="step-dot">3</div>
+    <span class="step-label">Confirmation</span>
+  </div>
+</div>
+
+<!-- Page -->
+<div class="page">
+
+  <!-- Left: payment methods + OTP -->
+  <div>
+    <div class="card">
+      <div class="card-title">Choose <em>Payment</em></div>
+      <div class="card-sub">Select exactly one payment method to continue</div>
+
+      <div class="methods-grid">
+
+        <div class="method-card" data-type="PHONEPE" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-phonepe">💜</div>
+          <div class="method-name">PhonePe</div>
+          <div class="method-tag">UPI · Instant</div>
+        </div>
+
+        <div class="method-card" data-type="GOOGLE_PAY" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-gpay">🔵</div>
+          <div class="method-name">Google Pay</div>
+          <div class="method-tag">UPI · Instant</div>
+        </div>
+
+        <div class="method-card" data-type="PAYTM" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-paytm">🔷</div>
+          <div class="method-name">Paytm</div>
+          <div class="method-tag">Wallet & UPI</div>
+        </div>
+
+        <div class="method-card" data-type="UPI" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-upi">🏦</div>
+          <div class="method-name">UPI Direct</div>
+          <div class="method-tag">Any UPI ID</div>
+        </div>
+
+        <div class="method-card" data-type="CREDIT_CARD" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-card">💳</div>
+          <div class="method-name">Credit Card</div>
+          <div class="method-tag">Visa / Master / Amex</div>
+        </div>
+
+        <div class="method-card" data-type="NET_BANKING" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-netbank">🏛️</div>
+          <div class="method-name">Net Banking</div>
+          <div class="method-tag">All major banks</div>
+        </div>
+
+        <div class="method-card" data-type="COD" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-cod">💵</div>
+          <div class="method-name">Cash on Delivery</div>
+          <div class="method-tag">Pay at doorstep</div>
+        </div>
+
+        <div class="method-card" data-type="WALLET" onclick="selectMethod(this)">
+          <div class="method-check"></div>
+          <div class="method-logo logo-wallet">👛</div>
+          <div class="method-name">Karim Wallet</div>
+          <div class="method-tag">Instant · 0 fee</div>
+        </div>
+
+      </div>
+
+      <!-- COD note -->
+      <div class="cod-note" id="codNote">
+        📦 Cash on Delivery is available. No OTP required — just confirm your order and pay when it arrives!
+      </div>
+
+      <!-- OTP section — shown only after a method is selected -->
+      <div class="otp-section" id="otpSection" style="display:none">
+
+        <div class="otp-header">
+          <span style="font-size:13px;color:var(--muted);font-weight:500;">Paying via</span>
+          <div class="otp-method-badge" id="selectedMethodBadge">—</div>
+        </div>
+
+        <!-- Send OTP button (shown for non-COD) -->
+        <button class="send-otp-btn" id="sendOtpBtn" onclick="sendOTP()">
+          <span>📲</span> Send OTP
+        </button>
+
+        <!-- COD confirm button (shown for COD) -->
+        <button class="send-otp-btn" id="codConfirmBtn" onclick="placeCODOrder()" style="display:none; background:#f59e0b;">
+          <span>✅</span> Confirm Order
+        </button>
+
+        <!-- OTP digits + Pay Now — revealed after OTP sent -->
+        <div class="otp-input-row" id="otpInputRow">
+          <div>
+            <div style="font-size:13px;font-weight:500;margin-bottom:12px;text-align:center;color:var(--muted)">
+              Enter the 6-digit OTP sent to your registered mobile
+            </div>
+            <div class="otp-digits" id="otpDigits">
+              <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" />
+              <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" />
+              <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" />
+              <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" />
+              <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" />
+              <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" />
+            </div>
+          </div>
+
+          <div class="otp-hint">
+            Didn't receive it? <span onclick="resendOTP()">Resend OTP</span>
+            <span id="resendTimer" style="color:var(--muted);cursor:default"></span>
+          </div>
+
+          <button class="pay-now-btn" id="payNowBtn" onclick="placeOrder()" disabled>
+            <span class="btn-text" id="payNowText">Pay Now</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: order summary -->
+  <div class="summary-card">
+    <div class="summary-title">Order Summary</div>
+    <div class="summary-row">
+      <span id="summaryItemLabel">Items</span>
+      <strong id="summarySubtotal">—</strong>
+    </div>
+    <div class="summary-row">
+      <span>Shipping</span>
+      <strong id="summaryShipping">—</strong>
+    </div>
+    <hr class="summary-divider">
+    <div class="summary-total">
+      <span>Total</span>
+      <span id="summaryTotal">—</span>
+    </div>
+
+    <div class="secure-badges">
+      <div class="badge-row">🔒 <span>256-bit SSL encryption</span></div>
+      <div class="badge-row">✅ <span>PCI-DSS compliant</span></div>
+      <div class="badge-row">↩️ <span>Free returns within 7 days</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Success overlay -->
+<div class="success-overlay" id="successOverlay">
+  <div class="success-circle">✓</div>
+  <div class="success-title">Order <em>Placed!</em></div>
+  <div class="success-sub">Thank you for shopping with Karim</div>
+  <div class="success-order">
+    <div class="label">Order ID</div>
+    <div class="order-id" id="successOrderId">#—</div>
+  </div>
+  <button class="success-cta" onclick="window.location.href='products.html'">Continue Shopping →</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const token = localStorage.getItem('authToken');
+  if (!token) window.location.href = 'login.html';
+
+  // ── Load summary from cart ──────────────────────────────────────────────────
+  (function loadSummary() {
+    const raw = localStorage.getItem('checkoutSummary');
+    const s   = raw ? JSON.parse(raw) : { subtotal: 0, shipping: 49, grand: 49, itemCount: 0 };
+    const fmt  = v => '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+    document.getElementById('summaryItemLabel').textContent  = `Items (${s.itemCount})`;
+    document.getElementById('summarySubtotal').textContent   = fmt(s.subtotal);
+    document.getElementById('summaryShipping').textContent   = s.shipping === 0 ? 'FREE' : fmt(s.shipping);
+    document.getElementById('summaryTotal').textContent      = fmt(s.grand);
+    document.getElementById('payNowText').textContent        = `Pay ${fmt(s.grand)}`;
+    if (s.shipping === 0) document.getElementById('summaryShipping').style.color = 'var(--accent)';
+  })();
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  let selectedPaymentType = null;   // e.g. "PHONEPE"
+  let otpSent             = false;
+  let resendInterval      = null;
+  let currentOrderId      = null;   // set after POST /api/checkout succeeds
+
+  // ── Select a payment method (only one at a time) ──────────────────────────
+  function selectMethod(el) {
+    // Deselect all
+    document.querySelectorAll('.method-card').forEach(c => c.classList.remove('selected'));
+    document.querySelectorAll('.method-check').forEach(c => c.textContent = '');
+
+    // Select clicked
+    el.classList.add('selected');
+    el.querySelector('.method-check').textContent = '✓';
+
+    selectedPaymentType = el.dataset.type;
+
+    // Reset OTP state when user changes method
+    otpSent = false;
+    document.getElementById('otpInputRow').classList.remove('show');
+
+    // Show OTP section
+    const otpSection = document.getElementById('otpSection');
+    otpSection.style.display = 'block';
+
+    const isCOD = selectedPaymentType === 'COD';
+
+    // Badge label
+    document.getElementById('selectedMethodBadge').textContent = el.querySelector('.method-name').textContent;
+
+    // Toggle COD vs OTP buttons
+    document.getElementById('sendOtpBtn').style.display    = isCOD ? 'none'  : 'flex';
+    document.getElementById('codConfirmBtn').style.display = isCOD ? 'flex'  : 'none';
+    document.getElementById('codNote').classList.toggle('show', isCOD);
+
+    // Pay now button text
+    if (!isCOD) {
+      const raw = localStorage.getItem('checkoutSummary');
+      const s   = raw ? JSON.parse(raw) : { grand: 0 };
+      const fmt = v => '₹' + Number(v).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      document.getElementById('payNowText').textContent = `Pay ${fmt(s.grand)}`;
+    }
+  }
+
+  // ── Send OTP ─────────────────────────────────────────────────────────────
+  // Flow: POST /api/checkout → get orderId → POST /api/payment/pay → show OTP input
+  async function sendOTP() {
+    if (!selectedPaymentType) return;
+
+    const btn = document.getElementById('sendOtpBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Processing…';
+
+    try {
+      // Step 1: Create the order via checkout API
+      const checkoutRes = await fetch('http://localhost:9090/api/order/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ paymentType: selectedPaymentType })
+      });
+
+      if (checkoutRes.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+
+      if (checkoutRes.status === 400) {
+        const msg = await checkoutRes.text();
+        throw new Error(msg || 'Checkout failed');
+      }
+
+      if (!checkoutRes.ok) throw new Error('Checkout failed: ' + checkoutRes.status);
+
+      const order = await checkoutRes.json();
+      // Store orderId — supports id, orderId, orderNumber field names
+      currentOrderId = order.id || order.orderId || order.orderNumber;
+
+      if (!currentOrderId) throw new Error('Could not get order ID from server');
+
+      // Step 2: Trigger OTP by calling POST /api/payment/pay
+      const payRes = await fetch('http://localhost:9090/api/payment/pay', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          orderId: currentOrderId,
+          paymentType: selectedPaymentType
+        })
+      });
+
+      if (payRes.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+      if (!payRes.ok) {
+        const err = await payRes.text();
+        throw new Error(err || 'Payment initiation failed');
+      }
+
+      // Success — OTP has been sent by backend
+      otpSent = true;
+      btn.innerHTML = '<span>✅</span> OTP Sent!';
+
+      const row = document.getElementById('otpInputRow');
+      row.classList.add('show');
+
+      // Focus first digit
+      document.querySelectorAll('.otp-digit')[0].focus();
+
+      // Start 30s resend countdown
+      startResendTimer(30);
+
+      showToast('📲 OTP sent to your registered mobile');
+
+    } catch (err) {
+      console.error('Send OTP error:', err);
+      showToast('❌ ' + err.message, true);
+      btn.disabled = false;
+      btn.innerHTML = '<span>📲</span> Send OTP';
+    }
+  }
+
+  // ── COD: place order directly (no OTP needed) ─────────────────────────────
+  async function placeCODOrder() {
+    const btn = document.getElementById('codConfirmBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Placing Order…';
+
+    try {
+      const res = await fetch('http://localhost:9090/api/order/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({ paymentType: 'COD' })
+      });
+
+      if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+
+      if (res.status === 400) {
+        const msg = await res.text();
+        throw new Error(msg || 'Order failed');
+      }
+
+      if (!res.ok) throw new Error('Server error ' + res.status);
+
+      const order = await res.json();
+      localStorage.removeItem('checkoutSummary');
+      const orderId = order.id || order.orderId || order.orderNumber || '—';
+      document.getElementById('successOrderId').textContent = '#' + orderId;
+      document.getElementById('successOverlay').classList.add('show');
+
+    } catch (err) {
+      console.error('COD order error:', err);
+      showToast('❌ ' + err.message, true);
+      btn.disabled = false;
+      btn.innerHTML = '<span>✅</span> Confirm Order';
+    }
+  }
+
+  // ── OTP input auto-advance ─────────────────────────────────────────────────
+  document.getElementById('otpDigits').addEventListener('input', function(e) {
+    const inputs = [...this.querySelectorAll('.otp-digit')];
+    const idx    = inputs.indexOf(e.target);
+
+    if (e.target.value && idx < inputs.length - 1) {
+      inputs[idx + 1].focus();
+    }
+
+    // Enable Pay Now when all 6 filled
+    const allFilled = inputs.every(i => i.value.trim() !== '');
+    document.getElementById('payNowBtn').disabled = !allFilled;
+  });
+
+  document.getElementById('otpDigits').addEventListener('keydown', function(e) {
+    const inputs = [...this.querySelectorAll('.otp-digit')];
+    const idx    = inputs.indexOf(e.target);
+    if (e.key === 'Backspace' && !e.target.value && idx > 0) {
+      inputs[idx - 1].focus();
+    }
+  });
+
+  // ── Resend timer ───────────────────────────────────────────────────────────
+  function startResendTimer(seconds) {
+    const timerEl   = document.getElementById('resendTimer');
+    const resendLink = document.querySelector('.otp-hint span');
+    resendLink.style.pointerEvents = 'none';
+    resendLink.style.opacity = '0.4';
+
+    let remaining = seconds;
+    timerEl.textContent = ` (${remaining}s)`;
+
+    clearInterval(resendInterval);
+    resendInterval = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(resendInterval);
+        timerEl.textContent = '';
+        resendLink.style.pointerEvents = 'auto';
+        resendLink.style.opacity = '1';
+      } else {
+        timerEl.textContent = ` (${remaining}s)`;
+      }
+    }, 1000);
+  }
+
+  // ── Verify OTP + complete payment ────────────────────────────────────────
+  async function placeOrder() {
+    const otp = [...document.querySelectorAll('.otp-digit')].map(i => i.value).join('');
+    if (otp.length < 6) { showToast('❌ Enter all 6 OTP digits', true); return; }
+
+    if (!currentOrderId) { showToast('❌ Order session lost. Please start again.', true); return; }
+
+    const btn = document.getElementById('payNowBtn');
+    btn.disabled = true;
+    btn.classList.add('loading');
+
+    try {
+      // POST /api/payment/verify-otp
+      const res = await fetch('http://localhost:9090/api/payment/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          orderId: currentOrderId,
+          otp: otp
+        })
+      });
+
+      if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+
+      if (res.status === 400) {
+        const msg = await res.text();
+        throw new Error(msg || 'Invalid OTP');
+      }
+
+      if (res.status === 400) {
+        const msg = await res.text();
+        throw new Error(msg || 'Invalid OTP');
+      }
+
+      if (!res.ok) throw new Error('Verification failed: ' + res.status);
+
+      // Backend returns plain string "Payment successful!" — read as text
+      const msg = await res.text();
+      console.log('Payment response:', msg);
+
+      // Payment complete — show success overlay
+      localStorage.removeItem('checkoutSummary');
+      document.getElementById('successOrderId').textContent = '#' + currentOrderId;
+      document.getElementById('successOverlay').classList.add('show');
+
+    } catch (err) {
+      console.error('Verify OTP error:', err);
+      showToast('❌ ' + err.message, true);
+      // Clear OTP digits so user can retry
+      document.querySelectorAll('.otp-digit').forEach(i => i.value = '');
+      document.querySelectorAll('.otp-digit')[0].focus();
+      btn.disabled = true;   // stays disabled until all 6 filled again
+      btn.classList.remove('loading');
+    }
+  }
+
+  // ── Resend OTP — re-calls /api/payment/pay with same orderId ─────────────
+  async function resendOTP() {
+    if (!currentOrderId) return;
+    document.querySelectorAll('.otp-digit').forEach(i => i.value = '');
+    document.getElementById('payNowBtn').disabled = true;
+
+    try {
+      const res = await fetch('http://localhost:9090/api/payment/pay', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          orderId: currentOrderId,
+          paymentType: selectedPaymentType
+        })
+      });
+      if (!res.ok) throw new Error('Resend failed');
+      startResendTimer(30);
+      showToast('📲 OTP resent!');
+    } catch (err) {
+      showToast('❌ Could not resend OTP', true);
+    }
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────────────────
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = isError ? '#e06c6c' : '#1a1a1a';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+</script>
+</body>
+</html>

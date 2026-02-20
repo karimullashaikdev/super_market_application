@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #161619;
+    --border: #2a2a30;
+    --accent: #c8a96e;
+    --accent-dim: rgba(200,169,110,0.12);
+    --text: #e8e6e0;
+    --muted: #6b6b70;
+    --error: #e06c6c;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Ambient background blobs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(200,169,110,0.08) 0%, transparent 70%);
+    top: -100px; left: -100px;
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+  body::after {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(100,80,200,0.06) 0%, transparent 70%);
+    bottom: -80px; right: -80px;
+    animation: drift 15s ease-in-out infinite alternate-reverse;
+  }
+
+  @keyframes drift {
+    from { transform: translate(0,0); }
+    to   { transform: translate(40px, 30px); }
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 420px;
+    padding: 48px 40px;
+    animation: fadeUp 0.6s ease both;
+    box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 36px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+  }
+  .logo-text {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    font-weight: 400;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+  h1 em { color: var(--accent); font-style: italic; }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 36px;
+    font-weight: 300;
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+  input::placeholder { color: var(--muted); }
+
+  .role-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+  }
+  .role-btn {
+    flex: 1;
+    padding: 9px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .role-btn.active {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(200,169,110,0.3);
+  }
+
+  .btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #0d0d0f;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    margin-top: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .btn .spinner {
+    display: none;
+    width: 16px; height: 16px;
+    border: 2px solid rgba(0,0,0,0.3);
+    border-top-color: #0d0d0f;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto;
+  }
+  .btn.loading .btn-text { display: none; }
+  .btn.loading .spinner { display: block; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: rgba(224,108,108,0.1);
+    border: 1px solid rgba(224,108,108,0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--error);
+    margin-top: 16px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+
+  .footer-link {
+    text-align: center;
+    margin-top: 24px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .footer-link a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .footer-link a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">✦</div>
+    <span class="logo-text">Karim</span>
+  </div>
+
+  <h1>Welcome <em>back</em></h1>
+  <p class="subtitle">Sign in to continue to your account</p>
+
+  <div class="role-toggle">
+    <button class="role-btn active" onclick="setRole('user', this)">👤 User</button>
+    <button class="role-btn" onclick="setRole('admin', this)">🛡 Admin</button>
+  </div>
+
+  <div class="field">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="Enter your email" />
+  </div>
+  <div class="field">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="Enter your password" />
+  </div>
+
+  <button class="btn" id="loginBtn" onclick="handleLogin()">
+    <span class="btn-text">Sign In</span>
+    <div class="spinner"></div>
+  </button>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <p class="footer-link">Don't have an account? <a href="register.html">Create one</a></p>
+</div>
+
+<script>
+  let selectedRole = 'user';
+
+  function setRole(role, el) {
+    selectedRole = role;
+    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+  }
+
+  async function handleLogin() {
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('loginBtn');
+    const errorMsg = document.getElementById('errorMsg');
+
+    errorMsg.classList.remove('show');
+
+    if (!email || !password) {
+      showError('Please fill in all fields.');
+      return;
+    }
+
+    btn.classList.add('loading');
+    btn.disabled = true;
+
+    try {
+      console.log('→ Sending login request to port 9090...');
+      console.log('→ Payload:', { email, password });
+
+      let res;
+      try {
+        res = await fetch('http://localhost:9090/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+      } catch (networkErr) {
+        // Network-level failure (CORS, server down, etc.)
+        console.error('Network error:', networkErr);
+        throw new Error('Cannot reach server. Check CORS config or if Spring Boot is running on port 9090.');
+      }
+
+      console.log('→ Response status:', res.status);
+
+      // Read raw text first so we can log it regardless of format
+      const rawText = await res.text();
+      console.log('→ Raw response body:', rawText);
+
+      if (!res.ok) {
+        // Try to parse as JSON for a message field, else show raw
+        let msg = `Server returned ${res.status}`;
+        try {
+          const errData = JSON.parse(rawText);
+          msg = errData.message || errData.error || JSON.stringify(errData);
+        } catch {
+          if (rawText) msg = rawText;
+        }
+        throw new Error(msg);
+      }
+
+      // Parse successful response
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error('Server response is not valid JSON: ' + rawText);
+      }
+
+      console.log('→ Parsed response:', data);
+
+      // Support multiple token field names: token, accessToken, jwt
+      const token = data.token || data.accessToken || data.jwt;
+      if (!token) {
+        throw new Error('No token found in response. Keys received: ' + Object.keys(data).join(', '));
+      }
+
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('userRole', selectedRole);
+
+      // Decode role from JWT payload
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        console.log('→ JWT payload:', payload);
+        const role = (payload.role || payload.roles || payload.authorities || selectedRole)
+                      .toString().toLowerCase();
+        if (role.includes('admin')) {
+          window.location.href = 'admin.html';
+        } else {
+          window.location.href = 'products.html';
+        }
+      } catch {
+        // Fallback to the role the user selected
+        console.warn('Could not decode JWT, using selected role:', selectedRole);
+        window.location.href = selectedRole === 'admin' ? 'admin.html' : 'products.html';
+      }
+
+    } catch (err) {
+      console.error('Login error:', err);
+      showError(err.message || 'Login failed. Please try again.');
+    } finally {
+      btn.classList.remove('loading');
+      btn.disabled = false;
+    }
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.classList.add('show');
+  }
+
+  // Allow Enter key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleLogin();
+  });
+</script>
+</body>
+</html>
