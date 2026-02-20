@@ -134,51 +134,43 @@ public class SecurityConfig {
 
 				.authorizeHttpRequests(auth -> auth
 
-						// ---------------- Public & Swagger Endpoints ----------------
+						// -------- Public & Swagger --------
 						.requestMatchers("/api/auth/**", "/api/auth/forgot-password", "/api/auth/reset-password",
 								"/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**",
 								"/webjars/**", "/*.html", "/*.css", "/*.js", "/images/**", "/favicon.ico")
 						.permitAll()
 
-						// ---------------- Allow OPTIONS for CORS ----------------
+						// -------- CORS preflight --------
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-						// ---------------- Product Endpoints ----------------
+						// -------- Products --------
 						.requestMatchers(HttpMethod.GET, "/api/products/**").hasAnyRole("ADMIN", "USER")
-
-						.requestMatchers(HttpMethod.GET, "/api/products/search").hasAnyRole("ADMIN", "USER")
-
-						.requestMatchers(HttpMethod.GET, "/api/products/category").hasAnyRole("ADMIN", "USER")
-
-						.requestMatchers(HttpMethod.POST, "/api/products").hasRole("ADMIN")
-
+						.requestMatchers(HttpMethod.POST, "/api/products/**").hasRole("ADMIN")
 						.requestMatchers(HttpMethod.PUT, "/api/products/**").hasRole("ADMIN")
-
 						.requestMatchers(HttpMethod.DELETE, "/api/products/**").hasRole("ADMIN")
 
-						// ---------------- Cart, Order, Payment ----------------
+						// -------- Orders (specific before general) --------
+						.requestMatchers(HttpMethod.GET, "/api/order/all").hasRole("ADMIN")
+						.requestMatchers("/api/order/**").hasAnyRole("USER", "ADMIN")
+
+						// -------- Cart --------
 						.requestMatchers("/api/cart/**").hasRole("USER")
 
-						.requestMatchers("/api/order/**").hasRole("USER")
-
+						// -------- Payment --------
 						.requestMatchers("/api/payment/**").hasRole("USER")
 
-						// ---------------- Admin ----------------
-						.requestMatchers("/api/admin/**").hasRole("ADMIN")
+						// -------- Admin --------
+						.requestMatchers("/api/admin/**").hasRole("ADMIN").requestMatchers("/api/admin/stock/**")
+						.hasRole("ADMIN")
 
-						.requestMatchers("/api/admin/stock/**").hasRole("ADMIN")
+						// -------- User management --------
+						.requestMatchers("/api/user/**").hasRole("ADMIN")
 
-						// ---------------- Any other request ----------------
+						// -------- Any other --------
 						.anyRequest().authenticated())
 
-				// ---------------- Exception Handling ----------------
 				.exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler))
-
-				// ---------------- JWT Filter ----------------
-				.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
-
-				// ---------------- Enable CORS ----------------
-				.cors();
+				.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class).cors();
 
 		return http.build();
 	}

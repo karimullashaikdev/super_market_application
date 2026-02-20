@@ -1,6 +1,5 @@
 package com.karim.service.impl;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.karim.dto.CheckoutRequest;
+import com.karim.dto.OrderItemDetailsDTO;
 import com.karim.entity.CartItem;
 import com.karim.entity.Order;
 import com.karim.entity.OrderItem;
@@ -39,58 +39,55 @@ public class OrderServiceImpl implements OrderService {
 	@Transactional
 	public Order checkout(Long userId, CheckoutRequest request) {
 
-	    List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
+		List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
 
-	    if (cartItems.isEmpty()) {
-	        throw new CartEmptyException("Cart is empty");
-	    }
+		if (cartItems.isEmpty()) {
+			throw new CartEmptyException("Cart is empty");
+		}
 
-	    Order order = new Order();
-	    order.setUserId(userId);
+		Order order = new Order();
+		order.setUserId(userId);
 
-	    // 🔥 Set Enums Properly
-	    order.setStatus(OrderStatus.PENDING);
-	    order.setPaymentType(request.getPaymentType());
+		// 🔥 Set Enums Properly
+		order.setStatus(OrderStatus.PENDING);
+		order.setPaymentType(request.getPaymentType());
 
-	    List<OrderItem> orderItems = cartItems.stream().map(cart -> {
+		List<OrderItem> orderItems = cartItems.stream().map(cart -> {
 
-	        // Fetch Product
-	        Product product = productRepo.findById(cart.getProductId())
-	                .orElseThrow(() -> new RuntimeException("Product not found"));
+			// Fetch Product
+			Product product = productRepo.findById(cart.getProductId())
+					.orElseThrow(() -> new RuntimeException("Product not found"));
 
-	        // ✅ Stock Validation (VERY IMPORTANT)
-	        if (product.getStock() < cart.getQuantity()) {
-	            throw new RuntimeException(
-	                    "Insufficient stock for product: " + product.getName());
-	        }
+			// ✅ Stock Validation (VERY IMPORTANT)
+			if (product.getStock() < cart.getQuantity()) {
+				throw new RuntimeException("Insufficient stock for product: " + product.getName());
+			}
 
-	        // ✅ Reduce Stock
-	        product.setStock(product.getStock() - cart.getQuantity());
+			// ✅ Reduce Stock
+			product.setStock(product.getStock() - cart.getQuantity());
 
-	        OrderItem item = new OrderItem();
-	        item.setProductId(product.getId());
-	        item.setProductName(product.getName());
-	        item.setPrice(product.getPrice());
-	        item.setQuantity(cart.getQuantity());
-	        item.setOrder(order);
+			OrderItem item = new OrderItem();
+			item.setProductId(product.getId());
+			item.setProductName(product.getName());
+			item.setPrice(product.getPrice());
+			item.setQuantity(cart.getQuantity());
+			item.setOrder(order);
 
-	        return item;
+			return item;
 
-	    }).toList();
+		}).toList();
 
-	    double total = orderItems.stream()
-	            .mapToDouble(i -> i.getPrice() * i.getQuantity())
-	            .sum();
+		double total = orderItems.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
 
-	    order.setItems(orderItems);
-	    order.setTotalAmount(total);
+		order.setItems(orderItems);
+		order.setTotalAmount(total);
 
-	    Order savedOrder = orderRepo.save(order);
+		Order savedOrder = orderRepo.save(order);
 
-	    // Clear cart after order
-	    cartRepo.deleteByUserId(userId);
+		// Clear cart after order
+		cartRepo.deleteByUserId(userId);
 
-	    return savedOrder;
+		return savedOrder;
 	}
 
 	// ===============================
@@ -116,5 +113,10 @@ public class OrderServiceImpl implements OrderService {
 		}
 
 		return order;
+	}
+
+	@Override
+	public List<OrderItemDetailsDTO> getAllOrders() {
+		return orderRepo.fetchOrderItemDetails();
 	}
 }

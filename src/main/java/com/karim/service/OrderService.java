@@ -3,6 +3,7 @@ package com.karim.service;
 import java.util.List;
 
 import com.karim.dto.CheckoutRequest;
+import com.karim.dto.OrderItemDetailsDTO;
 import com.karim.entity.Order;
 
 public interface OrderService {
@@ -12,4 +13,6 @@ public interface OrderService {
 	List<Order> getMyOrders(Long userId);
 
 	Order getOrder(Long orderId, Long userId);
+
+	List<OrderItemDetailsDTO> getAllOrders();
 }
