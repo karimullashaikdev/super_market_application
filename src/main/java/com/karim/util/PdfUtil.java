@@ -1,138 +1,140 @@
 package com.karim.util;
 
+import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.karim.entity.Order;
 import com.karim.entity.OrderItem;
-import com.lowagie.text.Document;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.draw.LineSeparator;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.*;
 
 public class PdfUtil {
 
-	public static byte[] generateBill(Order order) {
+    public static byte[] generateBill(Order order) {
 
-		try {
-			Document document = new Document(PageSize.A4, 40, 40, 50, 50);
-			ByteArrayOutputStream out = new ByteArrayOutputStream();
-			PdfWriter.getInstance(document, out);
+        try {
 
-			document.open();
+            Document doc = new Document(PageSize.A4, 50, 50, 50, 50);
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
 
-			// ==========================
-			// Fonts
-			// ==========================
-			Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 22);
-			Font headerFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
-			Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 11);
-			Font boldFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 11);
+            PdfWriter writer = PdfWriter.getInstance(doc, out);
+            doc.open();
 
-			// ==========================
-			// Store Title
-			// ==========================
-			Paragraph storeName = new Paragraph("KARIM MART SUPERMARKET", titleFont);
-			storeName.setAlignment(Element.ALIGN_CENTER);
-			document.add(storeName);
+            // ✅ FORCE WHITE BACKGROUND
+            PdfContentByte canvas = writer.getDirectContentUnder();
+            Rectangle rect = doc.getPageSize();
+            canvas.setColorFill(Color.WHITE);
+            canvas.rectangle(rect.getLeft(), rect.getBottom(),
+                    rect.getWidth(), rect.getHeight());
+            canvas.fill();
 
-			Paragraph thankYou = new Paragraph("Thank you for your purchase!", normalFont);
-			thankYou.setAlignment(Element.ALIGN_CENTER);
-			document.add(thankYou);
+            DateTimeFormatter fmt =
+                    DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a");
 
-			document.add(new Paragraph(" "));
+            // ─────────────────────────────────────
+            // HEADER
+            // ─────────────────────────────────────
+            Font titleFont =
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, Color.BLACK);
 
-			// ==========================
-			// Order Info Section
-			// ==========================
-			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
+            Paragraph title = new Paragraph("KARIM MART - TAX INVOICE", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            title.setSpacingAfter(15f);
+            doc.add(title);
 
-			document.add(new Paragraph("Order ID: " + order.getId(), boldFont));
-			document.add(new Paragraph("Customer ID: " + order.getUserId(), normalFont));
-			document.add(new Paragraph("Order Date: " + order.getCreatedAt().format(formatter), normalFont));
-			document.add(new Paragraph("Payment Status: " + order.getStatus().name(), boldFont));
+            Font normalFont =
+                    FontFactory.getFont(FontFactory.HELVETICA, 11, Color.BLACK);
 
-			document.add(new Paragraph(" "));
-			document.add(new LineSeparator());
-			document.add(new Paragraph(" "));
+            doc.add(new Paragraph("Order ID: " + order.getId(), normalFont));
+            doc.add(new Paragraph("Date: " + order.getCreatedAt().format(fmt), normalFont));
+            doc.add(new Paragraph("Payment Type: " + order.getPaymentType().name(), normalFont));
+            doc.add(new Paragraph("Status: " + order.getStatus().name(), normalFont));
+            doc.add(new Paragraph(" "));
 
-			// ==========================
-			// Product Table
-			// ==========================
-			PdfPTable table = new PdfPTable(4);
-			table.setWidthPercentage(100);
-			table.setSpacingBefore(10f);
-			table.setWidths(new float[] { 3, 1, 1, 1 });
+            // ─────────────────────────────────────
+            // ITEMS TABLE
+            // ─────────────────────────────────────
+            PdfPTable table = new PdfPTable(5);
+            table.setWidthPercentage(100);
+            table.setSpacingBefore(10f);
+            table.setWidths(new float[]{0.5f, 3f, 1.2f, 1f, 1.3f});
 
-			addTableHeader(table, headerFont);
+            Font headerFont =
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12, Color.BLACK);
 
-			for (OrderItem item : order.getItems()) {
-				table.addCell(new Phrase(item.getProductName(), normalFont));
-				table.addCell(new Phrase(String.format("₹ %.2f", item.getPrice()), normalFont));
-				table.addCell(new Phrase(String.valueOf(item.getQuantity()), normalFont));
-				table.addCell(new Phrase(String.format("₹ %.2f", item.getPrice() * item.getQuantity()), normalFont));
-			}
+            String[] headers = {"#", "Product", "Unit Price", "Qty", "Subtotal"};
 
-			document.add(table);
+            for (String h : headers) {
+                PdfPCell cell = new PdfPCell(new Phrase(h, headerFont));
+                cell.setBackgroundColor(Color.LIGHT_GRAY);
+                cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+                cell.setPadding(8);
+                table.addCell(cell);
+            }
 
-			document.add(new Paragraph(" "));
-			document.add(new LineSeparator());
-			document.add(new Paragraph(" "));
+            Font cellFont =
+                    FontFactory.getFont(FontFactory.HELVETICA, 11, Color.BLACK);
 
-			// ==========================
-			// Total Section
-			// ==========================
-			Paragraph total = new Paragraph("Total Amount: ₹ " + String.format("%.2f", order.getTotalAmount()),
-					titleFont);
-			total.setAlignment(Element.ALIGN_RIGHT);
-			document.add(total);
+            AtomicInteger rowNum = new AtomicInteger(1);
 
-			document.add(new Paragraph(" "));
-			document.add(new LineSeparator());
-			document.add(new Paragraph(" "));
+            if (order.getItems() != null) {
+                for (OrderItem item : order.getItems()) {
 
-			// ==========================
-			// Footer
-			// ==========================
-			Paragraph footer = new Paragraph(
-					"This is a system generated invoice.\nFor any queries contact support@karimmart.com", normalFont);
-			footer.setAlignment(Element.ALIGN_CENTER);
-			document.add(footer);
+                    double subtotal =
+                            item.getPrice() * item.getQuantity();
 
-			document.close();
+                    table.addCell(createCell(String.valueOf(rowNum.getAndIncrement()), cellFont, Element.ALIGN_CENTER));
+                    table.addCell(createCell(item.getProductName(), cellFont, Element.ALIGN_LEFT));
+                    table.addCell(createCell("Rs " + String.format("%.2f", item.getPrice()), cellFont, Element.ALIGN_RIGHT));
+                    table.addCell(createCell(String.valueOf(item.getQuantity()), cellFont, Element.ALIGN_CENTER));
+                    table.addCell(createCell("Rs " + String.format("%.2f", subtotal), cellFont, Element.ALIGN_RIGHT));
+                }
+            }
 
-			return out.toByteArray();
+            doc.add(table);
 
-		} catch (Exception e) {
-			throw new RuntimeException("PDF generation failed", e);
-		}
-	}
+            // ─────────────────────────────────────
+            // TOTAL SECTION
+            // ─────────────────────────────────────
+            doc.add(new Paragraph(" "));
 
-	private static void addTableHeader(PdfPTable table, Font headerFont) {
+            Font totalFont =
+                    FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, Color.BLACK);
 
-		PdfPCell cell;
+            Paragraph total =
+                    new Paragraph("Grand Total: Rs " +
+                            String.format("%.2f", order.getTotalAmount()),
+                            totalFont);
 
-		cell = new PdfPCell(new Phrase("Product", headerFont));
-		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-		table.addCell(cell);
+            total.setAlignment(Element.ALIGN_RIGHT);
+            total.setSpacingBefore(10f);
+            doc.add(total);
 
-		cell = new PdfPCell(new Phrase("Price", headerFont));
-		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-		table.addCell(cell);
+            doc.add(new Paragraph(" "));
 
-		cell = new PdfPCell(new Phrase("Quantity", headerFont));
-		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-		table.addCell(cell);
+            Paragraph thanks =
+                    new Paragraph("Thank you for shopping with us!", totalFont);
+            thanks.setAlignment(Element.ALIGN_CENTER);
+            doc.add(thanks);
 
-		cell = new PdfPCell(new Phrase("Total", headerFont));
-		cell.setHorizontalAlignment(Element.ALIGN_CENTER);
-		table.addCell(cell);
-	}
+            doc.close();
+
+            return out.toByteArray();
+
+        } catch (Exception e) {
+            throw new RuntimeException("PDF generation failed", e);
+        }
+    }
+
+    // ─────────────────────────────────────
+    // Helper Method
+    // ─────────────────────────────────────
+    private static PdfPCell createCell(String text, Font font, int align) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, font));
+        cell.setHorizontalAlignment(align);
+        cell.setPadding(8);
+        return cell;
+    }
 }
