@@ -57,7 +57,7 @@ public class ProductServiceImpl implements ProductService {
 				.orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id : " + id));
 		int oldStock = product.getStock(); // ✅ Save old stock
 		BeanUtils.copyProperties(dto, product, "stock"); // ✅ Ignore stock
-		product.setStock(oldStock + dto.getStock()); // ✅ Add properly
+		product.setStock(dto.getStock()); // ✅ Add properly
 		Product updated = repo.save(product);
 		ProductResponse res = new ProductResponse();
 		BeanUtils.copyProperties(updated, res);

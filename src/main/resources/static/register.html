@@ -142,45 +142,6 @@
   }
   input::placeholder { color: var(--muted); }
 
-  /* Role selector — same style as login toggle */
-  .role-toggle {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 4px;
-  }
-  .role-btn {
-    flex: 1;
-    padding: 9px;
-    border: none;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--muted);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-  .role-btn.active {
-    background: var(--accent-dim);
-    color: var(--accent);
-    border: 1px solid rgba(200,169,110,0.3);
-  }
-
-  .role-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 8px;
-  }
-
   .btn {
     width: 100%;
     padding: 14px;
@@ -284,11 +245,7 @@
   </div>
 
   <div class="field">
-    <span class="role-label">Register as</span>
-    <div class="role-toggle">
-      <button class="role-btn active" onclick="setRole('USER', this)">👤 User</button>
-      <button class="role-btn" onclick="setRole('ADMIN', this)">🛡 Admin</button>
-    </div>
+
   </div>
 
   <button class="btn" id="registerBtn" onclick="handleRegister()">
@@ -303,14 +260,6 @@
 </div>
 
 <script>
-  let selectedRole = 'USER';
-
-  function setRole(role, el) {
-    selectedRole = role;
-    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-    el.classList.add('active');
-  }
-
   async function handleRegister() {
     const name            = document.getElementById('name').value.trim();
     const email           = document.getElementById('email').value.trim();
@@ -343,7 +292,7 @@
           name,
           email,
           password,
-          role: selectedRole    // "USER" or "ADMIN" — matches RegisterRequest.role
+          role: 'USER'
         })
       });
 
