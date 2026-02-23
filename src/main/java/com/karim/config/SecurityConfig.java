@@ -137,7 +137,7 @@ public class SecurityConfig {
 						// -------- Public & Swagger --------
 						.requestMatchers("/api/auth/**", "/api/auth/forgot-password", "/api/auth/reset-password",
 								"/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-resources/**",
-								"/webjars/**", "/*.html", "/*.css", "/*.js", "/images/**", "/favicon.ico")
+								"/webjars/**", "/*.html", "/*.css", "/*.js", "/images/**", "/favicon.ico","/")
 						.permitAll()
 
 						// -------- CORS preflight --------
