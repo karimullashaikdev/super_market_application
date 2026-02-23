@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestControllerAdvice(basePackages = "com.karim") // Only applies to your packages
+@RestControllerAdvice(basePackages = "com.karim")
 public class GlobalExceptionHandler {
 
     // ---------------- User Not Found ----------------
@@ -54,6 +54,18 @@ public class GlobalExceptionHandler {
                 .body(ex.getMessage());
     }
 
+    // ---------------- Runtime Exception (OTP errors, validation etc) ----------------
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, Object>> handleRuntimeException(RuntimeException ex,
+                                                                       HttpServletRequest request) {
+        String path = request.getRequestURI();
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", ex.getMessage());   // ← frontend reads this field
+        body.put("status", 400);
+        body.put("path", path);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     // ---------------- Generic Exception ----------------
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleException(Exception ex, HttpServletRequest request) {
@@ -61,15 +73,14 @@ public class GlobalExceptionHandler {
 
         // Skip Swagger/OpenAPI endpoints
         if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.startsWith("/swagger-ui.html")) {
-            throw new RuntimeException(ex); // Let Spring handle it
+            throw new RuntimeException(ex);
         }
 
-        // Return structured JSON for other exceptions
         Map<String, Object> error = new HashMap<>();
-        error.put("error", ex.getMessage());
+        error.put("message", ex.getMessage());  // ← consistent field name
+        error.put("error", ex.getMessage());    // ← kept for backward compatibility
         error.put("path", path);
         error.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 }

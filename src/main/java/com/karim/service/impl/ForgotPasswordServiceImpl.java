@@ -43,24 +43,20 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
 		User user = userRepo.findByEmail(request.getEmail())
 				.orElseThrow(() -> new UserNotFoundException("User not found"));
 
-		// Check existing OTP
-		PasswordResetOtp existingOtp = otpRepo.findByUserIdAndDeletedFalse(user.getId()).orElse(null);
+		// Delete any existing OTPs for this user — prevents duplicate row errors
+		otpRepo.softDeleteByUserId(user.getId());
 
-		String otp;
-		if (existingOtp != null && !existingOtp.isVerified() && existingOtp.getExpiry().isAfter(LocalDateTime.now())) {
-			otp = existingOtp.getOtp(); // reuse OTP
-		} else {
-			otp = generateOtp();
+		// Generate fresh OTP
+		String otp = generateOtp();
 
-			PasswordResetOtp resetOtp = new PasswordResetOtp();
-			resetOtp.setUserId(user.getId());
-			resetOtp.setOtp(otp);
-			resetOtp.setExpiry(LocalDateTime.now().plusMinutes(5));
-			resetOtp.setVerified(false);
-			resetOtp.setDeleted(false);
+		PasswordResetOtp resetOtp = new PasswordResetOtp();
+		resetOtp.setUserId(user.getId());
+		resetOtp.setOtp(otp);
+		resetOtp.setExpiry(LocalDateTime.now().plusMinutes(5));
+		resetOtp.setVerified(false);
+		resetOtp.setDeleted(false);
 
-			otpRepo.save(resetOtp);
-		}
+		otpRepo.save(resetOtp);
 
 		// Send email with OTP
 		emailService.sendForgotPasswordOtp(user.getEmail(), otp);
@@ -79,7 +75,7 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
 				.orElseThrow(() -> new UserNotFoundException("User not found"));
 
 		PasswordResetOtp otp = otpRepo.findByUserIdAndDeletedFalse(user.getId())
-				.orElseThrow(() -> new RuntimeException("OTP not found"));
+				.orElseThrow(() -> new RuntimeException("OTP not found or expired"));
 
 		if (otp.isVerified()) {
 			throw new RuntimeException("OTP already used");
@@ -93,8 +89,9 @@ public class ForgotPasswordServiceImpl implements ForgotPasswordService {
 			throw new RuntimeException("Invalid OTP");
 		}
 
-		// Mark OTP verified
+		// Mark OTP as used
 		otp.setVerified(true);
+		otp.setDeleted(true); // soft delete so it can't be reused
 		otpRepo.save(otp);
 
 		// Update password

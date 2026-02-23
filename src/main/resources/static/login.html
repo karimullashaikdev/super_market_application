@@ -245,11 +245,14 @@
   </div>
 
   <div class="field">
-    <label>Email</label>
-    <input type="email" id="email" placeholder="Enter your email" />
+    <label>Username</label>
+    <input type="text" id="username" placeholder="Enter your username" />
   </div>
   <div class="field">
-    <label>Password</label>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <label style="margin-bottom:0">Password</label>
+      <a href="forgot-password.html" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:500;opacity:0.8;transition:opacity 0.2s" onmouseover="this.style.opacity=1;this.style.textDecoration='underline'" onmouseout="this.style.opacity=0.8;this.style.textDecoration='none'">Forgot password?</a>
+    </div>
     <input type="password" id="password" placeholder="Enter your password" />
   </div>
 
@@ -273,14 +276,14 @@
   }
 
   async function handleLogin() {
-    const email = document.getElementById('email').value.trim();
+    const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     const btn = document.getElementById('loginBtn');
     const errorMsg = document.getElementById('errorMsg');
 
     errorMsg.classList.remove('show');
 
-    if (!email || !password) {
+    if (!username || !password) {
       showError('Please fill in all fields.');
       return;
     }
@@ -290,14 +293,14 @@
 
     try {
       console.log('→ Sending login request to port 9090...');
-      console.log('→ Payload:', { email, password });
+      console.log('→ Payload:', { username, password });
 
       let res;
       try {
         res = await fetch('http://localhost:9090/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ username, password })
         });
       } catch (networkErr) {
         // Network-level failure (CORS, server down, etc.)
