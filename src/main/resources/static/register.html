@@ -285,7 +285,7 @@
     btn.disabled = true;
 
     try {
-      const res = await fetch('http://localhost:9090/api/auth/register', {
+      const res = await fetch('https://super-market-application.onrender.com/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

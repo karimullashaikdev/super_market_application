@@ -592,7 +592,7 @@
 
   async function fetchUsers() {
     try {
-      const res = await fetch('http://localhost:9090/api/user', {
+      const res = await fetch('https://super-market-application.onrender.com/api/user', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return []; }
@@ -712,7 +712,7 @@
   // ── Fetch Revenue from GET /api/admin/revenue ─────────────────────────────
   async function loadRevenue() {
     try {
-      const res = await fetch('http://localhost:9090/api/admin/revenue', {
+      const res = await fetch('https://super-market-application.onrender.com/api/admin/revenue', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
@@ -735,7 +735,7 @@
 
   async function fetchOrders() {
     try {
-      const res = await fetch('http://localhost:9090/api/order/all', {
+      const res = await fetch('https://super-market-application.onrender.com/api/order/all', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return null; }
@@ -896,7 +896,7 @@
 
   async function fetchProducts() {
     try {
-      const res = await fetch('http://localhost:9090/api/products', {
+      const res = await fetch('https://super-market-application.onrender.com/api/products', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return null; }
@@ -1077,8 +1077,8 @@
     const payload = { name, brand, category, price, stock };
     const isEdit  = editingProductId !== null;
     const url     = isEdit
-      ? `http://localhost:9090/api/products/${editingProductId}`
-      : 'http://localhost:9090/api/products';
+      ? `https://super-market-application.onrender.com/api/products/${editingProductId}`
+      : 'https://super-market-application.onrender.com/api/products';
     const method  = isEdit ? 'PUT' : 'POST';
 
     btn.disabled = true;
@@ -1156,7 +1156,7 @@
     btn.disabled = true;
     btn.textContent = 'Deleting...';
     try {
-      const res = await fetch(`http://localhost:9090/api/products/${deletingProductId}`, {
+      const res = await fetch(`https://super-market-application.onrender.com/api/products/${deletingProductId}`, {
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -1455,7 +1455,7 @@
 
   async function loadItemSales() {
     try {
-      const res = await fetch('http://localhost:9090/api/admin/item-sales', {
+      const res = await fetch('https://super-market-application.onrender.com/api/admin/item-sales', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (!res.ok) throw new Error('Status ' + res.status);

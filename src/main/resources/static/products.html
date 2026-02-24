@@ -396,7 +396,7 @@
   async function loadProducts() {
     showSkeleton();
     try {
-      const res = await fetch('http://localhost:9090/api/products', {
+      const res = await fetch('https://super-market-application.onrender.com/api/products', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -522,7 +522,7 @@
   // ── Load real cart count from server on page load ──
   async function loadCartCount() {
     try {
-      const res = await fetch('http://localhost:9090/api/cart', {
+      const res = await fetch('https://super-market-application.onrender.com/api/cart', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (!res.ok) return;
@@ -543,7 +543,7 @@
     btnEl.innerHTML = '⏳ Adding...';
 
     try {
-      const res = await fetch('http://localhost:9090/api/cart/add', {
+      const res = await fetch('https://super-market-application.onrender.com/api/cart/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

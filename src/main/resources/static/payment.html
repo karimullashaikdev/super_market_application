@@ -573,7 +573,7 @@
 
     try {
       // Step 1: Create the order via checkout API
-      const checkoutRes = await fetch('http://localhost:9090/api/order/checkout', {
+      const checkoutRes = await fetch('https://super-market-application.onrender.com/api/order/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -598,7 +598,7 @@
       if (!currentOrderId) throw new Error('Could not get order ID from server');
 
       // Step 2: Trigger OTP by calling POST /api/payment/pay
-      const payRes = await fetch('http://localhost:9090/api/payment/pay', {
+      const payRes = await fetch('https://super-market-application.onrender.com/api/payment/pay', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -646,7 +646,7 @@
     btn.innerHTML = '<span>⏳</span> Placing Order…';
 
     try {
-      const res = await fetch('http://localhost:9090/api/order/checkout', {
+      const res = await fetch('https://super-market-application.onrender.com/api/order/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -737,7 +737,7 @@
 
     try {
       // POST /api/payment/verify-otp
-      const res = await fetch('http://localhost:9090/api/payment/verify-otp', {
+      const res = await fetch('https://super-market-application.onrender.com/api/payment/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -790,7 +790,7 @@
     document.getElementById('payNowBtn').disabled = true;
 
     try {
-      const res = await fetch('http://localhost:9090/api/payment/pay', {
+      const res = await fetch('https://super-market-application.onrender.com/api/payment/pay', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

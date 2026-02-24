@@ -297,7 +297,7 @@
 
       let res;
       try {
-        res = await fetch('http://localhost:9090/api/auth/login', {
+        res = await fetch('https://super-market-application.onrender.com/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: username, password })
