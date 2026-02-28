@@ -1,17 +1,17 @@
 package com.karim.service;
 
 import java.util.List;
-import java.util.Optional;
+
+import org.springframework.data.domain.Page;
 
 import com.karim.dto.ProductRequest;
 import com.karim.dto.ProductResponse;
-import com.karim.entity.Product;
 
 public interface ProductService {
 
 	ProductResponse addProduct(ProductRequest dto);
 
-	List<ProductResponse> getAllProducts();
+	Page<ProductResponse> getAllProducts(int page, int size);
 
 	ProductResponse getProductById(Long id);
 

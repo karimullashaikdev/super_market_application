@@ -5,6 +5,10 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.karim.dto.ProductRequest;
@@ -31,14 +35,24 @@ public class ProductServiceImpl implements ProductService {
 		return res;
 	}
 
+//	@Override
+//	public List<ProductResponse> getAllProducts() {
+//		List<Product> pros = repo.findByDeletedFalse();
+//		return pros.stream().map(pro -> {
+//			ProductResponse res = new ProductResponse();
+//			BeanUtils.copyProperties(pro, res);
+//			return res;
+//		}).collect(Collectors.toList());
+//	}
+	
 	@Override
-	public List<ProductResponse> getAllProducts() {
-		List<Product> pros = repo.findByDeletedFalse();
-		return pros.stream().map(pro -> {
-			ProductResponse res = new ProductResponse();
-			BeanUtils.copyProperties(pro, res);
-			return res;
-		}).collect(Collectors.toList());
+	public Page<ProductResponse> getAllProducts(int page, int size) {
+	    Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+	    return repo.findByDeletedFalse(pageable).map(pro -> {
+	        ProductResponse res = new ProductResponse();
+	        BeanUtils.copyProperties(pro, res);
+	        return res;
+	    });
 	}
 
 	@Override

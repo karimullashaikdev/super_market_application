@@ -3,6 +3,7 @@ package com.karim.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,10 +33,16 @@ public class ProductController {
 		return ResponseEntity.status(HttpStatus.CREATED).body(product);
 	}
 
+//	@GetMapping
+//	public ResponseEntity<List<ProductResponse>> getAllProducts() {
+//		List<ProductResponse> allProducts = service.getAllProducts();
+//		return ResponseEntity.status(HttpStatus.OK).body(allProducts);
+//	}
+
 	@GetMapping
-	public ResponseEntity<List<ProductResponse>> getAllProducts() {
-		List<ProductResponse> allProducts = service.getAllProducts();
-		return ResponseEntity.status(HttpStatus.OK).body(allProducts);
+	public ResponseEntity<Page<ProductResponse>> getAllProducts(@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+		return ResponseEntity.status(HttpStatus.OK).body(service.getAllProducts(page, size));
 	}
 
 	@GetMapping("/{id}")
