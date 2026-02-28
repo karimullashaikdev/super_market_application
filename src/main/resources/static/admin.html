@@ -896,7 +896,7 @@
 
   async function fetchProducts() {
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/products', {
+      const res = await fetch('https://super-market-application.onrender.com/api/products?page=0&size=1000', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return null; }
