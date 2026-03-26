@@ -1209,22 +1209,39 @@
   let lastOrderCount = 0;
   let activityLog    = [];  // stores all events, newest first
 
-  // Parse DB timestamp as IST (Asia/Kolkata = UTC+5:30).
-  // MySQL stores plain strings like "2026-03-26 14:52:30.123456".
-  // new Date() treats those as UTC, so we append +05:30 to force correct parsing.
+  // Parse DB timestamp correctly as IST (UTC+5:30)
+  // Logs the raw value once so you can verify in browser console (F12)
   function parseDbDate(dateVal) {
     if (!dateVal) return null;
     const s = String(dateVal).trim();
-    // Already has timezone info (Z, +xx:xx, etc.) — parse as-is
+
+    if (!parseDbDate._logged) {
+      console.log('[DEBUG parseDbDate] raw API value:', JSON.stringify(s), '| typeof:', typeof dateVal);
+      parseDbDate._logged = true;
+    }
+
+    // numeric epoch ms
+    if (typeof dateVal === 'number') return new Date(dateVal);
+
+    // already has timezone suffix: Z, +05:30, -05:00, +0530
     if (/[Zz]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
-    // Plain MySQL datetime string — treat as IST
-    return new Date(s.replace(' ', 'T') + '+05:30');
+
+    // offset without colon e.g. +0530
+    if (/[+-]\d{4}$/.test(s)) return new Date(s.replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3'));
+
+    // plain MySQL/JPA string — "2026-03-26 14:52:30.613885" or ISO without tz
+    // DB is now Asia/Kolkata so treat as +05:30
+    const normalized = s.replace(' ', 'T').replace(/(\.\d{1,6})\d*$/, '$1');
+    return new Date(normalized + '+05:30');
   }
 
   function timeAgo(dateVal) {
     if (!dateVal) return 'just now';
     const d = parseDbDate(dateVal);
-    if (!d || isNaN(d)) return 'just now';
+    if (!d || isNaN(d.getTime())) {
+      console.warn('[DEBUG timeAgo] unparseable date:', dateVal);
+      return 'just now';
+    }
     const diff = Math.floor((Date.now() - d.getTime()) / 1000);
     if (diff < 0)     return 'just now';
     if (diff < 60)    return `${diff}s ago`;
