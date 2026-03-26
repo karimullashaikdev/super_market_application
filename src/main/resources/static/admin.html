@@ -582,8 +582,12 @@
 
   function fmtDate(val) {
     if (!val) return '—';
-    try { return new Date(val).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
-    catch { return val; }
+    try {
+      const d = parseDbDate(val);
+      if (!d || isNaN(d)) return String(val);
+      return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+    }
+    catch { return String(val); }
   }
 
   // ── Fetch all users from GET /api/user ─────────────────────────────────────
@@ -1205,11 +1209,26 @@
   let lastOrderCount = 0;
   let activityLog    = [];  // stores all events, newest first
 
+  // Parse DB timestamp as IST (Asia/Kolkata = UTC+5:30).
+  // MySQL stores plain strings like "2026-03-26 14:52:30.123456".
+  // new Date() treats those as UTC, so we append +05:30 to force correct parsing.
+  function parseDbDate(dateVal) {
+    if (!dateVal) return null;
+    const s = String(dateVal).trim();
+    // Already has timezone info (Z, +xx:xx, etc.) — parse as-is
+    if (/[Zz]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+    // Plain MySQL datetime string — treat as IST
+    return new Date(s.replace(' ', 'T') + '+05:30');
+  }
+
   function timeAgo(dateVal) {
     if (!dateVal) return 'just now';
-    const diff = Math.floor((Date.now() - new Date(dateVal)) / 1000);
-    if (diff < 60)   return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    const d = parseDbDate(dateVal);
+    if (!d || isNaN(d)) return 'just now';
+    const diff = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (diff < 0)     return 'just now';
+    if (diff < 60)    return `${diff}s ago`;
+    if (diff < 3600)  return `${Math.floor(diff/60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff/3600)}h ago`;
     return `${Math.floor(diff/86400)}d ago`;
   }
