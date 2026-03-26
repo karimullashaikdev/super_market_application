@@ -1209,39 +1209,23 @@
   let lastOrderCount = 0;
   let activityLog    = [];  // stores all events, newest first
 
-  // Parse DB timestamp correctly as IST (UTC+5:30)
-  // Logs the raw value once so you can verify in browser console (F12)
+  // Spring Boot Jackson serializes LocalDateTime as UTC without 'Z' e.g. "2026-03-26T03:56:54.27655"
+  // Appending 'Z' forces the browser to treat it as UTC correctly.
+  // timeAgo then compares UTC timestamp vs Date.now() (which is also UTC internally) — correct diff.
   function parseDbDate(dateVal) {
     if (!dateVal) return null;
-    const s = String(dateVal).trim();
-
-    if (!parseDbDate._logged) {
-      console.log('[DEBUG parseDbDate] raw API value:', JSON.stringify(s), '| typeof:', typeof dateVal);
-      parseDbDate._logged = true;
-    }
-
-    // numeric epoch ms
     if (typeof dateVal === 'number') return new Date(dateVal);
-
-    // already has timezone suffix: Z, +05:30, -05:00, +0530
+    const s = String(dateVal).trim();
+    // Already has timezone info (Z, +xx:xx, -xx:xx) — parse as-is
     if (/[Zz]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
-
-    // offset without colon e.g. +0530
-    if (/[+-]\d{4}$/.test(s)) return new Date(s.replace(/([+-])(\d{2})(\d{2})$/, '$1$2:$3'));
-
-    // plain MySQL/JPA string — "2026-03-26 14:52:30.613885" or ISO without tz
-    // DB is now Asia/Kolkata so treat as +05:30
-    const normalized = s.replace(' ', 'T').replace(/(\.\d{1,6})\d*$/, '$1');
-    return new Date(normalized + '+05:30');
+    // No timezone suffix — Spring Boot sends UTC without Z, so we append Z
+    return new Date(s.replace(' ', 'T') + 'Z');
   }
 
   function timeAgo(dateVal) {
     if (!dateVal) return 'just now';
     const d = parseDbDate(dateVal);
-    if (!d || isNaN(d.getTime())) {
-      console.warn('[DEBUG timeAgo] unparseable date:', dateVal);
-      return 'just now';
-    }
+    if (!d || isNaN(d.getTime())) return 'just now';
     const diff = Math.floor((Date.now() - d.getTime()) / 1000);
     if (diff < 0)     return 'just now';
     if (diff < 60)    return `${diff}s ago`;
