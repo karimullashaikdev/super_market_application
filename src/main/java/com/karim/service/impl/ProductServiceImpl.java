@@ -1,5 +1,6 @@
 package com.karim.service.impl;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.karim.dto.ProductRequest;
 import com.karim.dto.ProductResponse;
@@ -24,14 +26,26 @@ public class ProductServiceImpl implements ProductService {
 	@Autowired
 	private ProductRepository repo;
 
+	@Autowired
+	private CloudinaryService cloudinaryService;
+
 	@Override
-	public ProductResponse addProduct(ProductRequest dto) {
+	public ProductResponse addProduct(ProductRequest dto, MultipartFile image) throws IOException {
+
+		// Step 1 — upload image to Cloudinary, get URL
+		String imageUrl = cloudinaryService.uploadImage(image);
+
+		// Step 2 — create product and set all fields
 		Product pro = new Product();
 		BeanUtils.copyProperties(dto, pro);
-		Product newPro = repo.save(pro);
+		pro.setImageUrl(imageUrl); // ✅ set the URL we got from Cloudinary
 
+		// Step 3 — save in DB
+		Product saved = repo.save(pro);
+
+		// Step 4 — return response
 		ProductResponse res = new ProductResponse();
-		BeanUtils.copyProperties(newPro, res);
+		BeanUtils.copyProperties(saved, res);
 		return res;
 	}
 
@@ -44,15 +58,15 @@ public class ProductServiceImpl implements ProductService {
 //			return res;
 //		}).collect(Collectors.toList());
 //	}
-	
+
 	@Override
 	public Page<ProductResponse> getAllProducts(int page, int size) {
-	    Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-	    return repo.findByDeletedFalse(pageable).map(pro -> {
-	        ProductResponse res = new ProductResponse();
-	        BeanUtils.copyProperties(pro, res);
-	        return res;
-	    });
+		Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
+		return repo.findByDeletedFalse(pageable).map(pro -> {
+			ProductResponse res = new ProductResponse();
+			BeanUtils.copyProperties(pro, res);
+			return res;
+		});
 	}
 
 	@Override
@@ -65,13 +79,22 @@ public class ProductServiceImpl implements ProductService {
 	}
 
 	@Override
-	public ProductResponse updateProduct(Long id, ProductRequest dto) {
+	public ProductResponse updateProduct(Long id, ProductRequest dto, MultipartFile image) throws IOException {
 
 		Product product = repo.findByIdAndDeletedFalse(id)
 				.orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id : " + id));
-		int oldStock = product.getStock(); // ✅ Save old stock
-		BeanUtils.copyProperties(dto, product, "stock"); // ✅ Ignore stock
-		product.setStock(dto.getStock()); // ✅ Add properly
+
+		// copy name, category, price, brand
+		BeanUtils.copyProperties(dto, product, "stock");
+		product.setStock(dto.getStock());
+
+		// ✅ if admin sends a new image → upload to Cloudinary and update URL
+		// ✅ if no image sent → keep the existing image as it is
+		if (image != null && !image.isEmpty()) {
+			String newImageUrl = cloudinaryService.uploadImage(image);
+			product.setImageUrl(newImageUrl);
+		}
+
 		Product updated = repo.save(product);
 		ProductResponse res = new ProductResponse();
 		BeanUtils.copyProperties(updated, res);

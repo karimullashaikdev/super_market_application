@@ -11,4 +11,5 @@ public class ProductResponse {
 	private Double price;
 	private int stock;
 	private String brand;
+	private String imageUrl; 
 }

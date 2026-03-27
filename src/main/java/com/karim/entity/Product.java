@@ -31,6 +31,7 @@ public class Product {
 	private Double price;
 	private int stock;
 	private String brand;
+	private String imageUrl;
 	@Column(nullable = false)
 	private boolean deleted = false;
 
