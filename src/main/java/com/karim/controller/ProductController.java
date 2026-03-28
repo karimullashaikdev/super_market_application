@@ -25,74 +25,62 @@ import com.karim.service.ProductService;
 @RequestMapping("/api/products")
 public class ProductController {
 
-	@Autowired
-	private ProductService service;
+    @Autowired
+    private ProductService service;
 
-//	@PostMapping
-//	public ResponseEntity<ProductResponse> addProduct(@RequestBody ProductRequest req) {
-//		ProductResponse product = service.addProduct(req);
-//		return ResponseEntity.status(HttpStatus.CREATED).body(product);
-//	}
-	@PostMapping(consumes = "multipart/form-data")
-	public ResponseEntity<ProductResponse> addProduct(@RequestPart("product") ProductRequest req,
-			@RequestPart(value = "image", required = true) MultipartFile image) { // required = true → mandatory
-		try {
-			ProductResponse product = service.addProduct(req, image);
-			return ResponseEntity.status(HttpStatus.CREATED).body(product);
-		} catch (Exception e) {
-			return ResponseEntity.badRequest().body(null);
-		}
-	}
+    @PostMapping(consumes = "multipart/form-data")
+    public ResponseEntity<ProductResponse> addProduct(@RequestPart("product") ProductRequest req,
+            @RequestPart(value = "image", required = true) MultipartFile image) {
+        try {
+            ProductResponse product = service.addProduct(req, image);
+            return ResponseEntity.status(HttpStatus.CREATED).body(product);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
 
-//	@GetMapping
-//	public ResponseEntity<List<ProductResponse>> getAllProducts() {
-//		List<ProductResponse> allProducts = service.getAllProducts();
-//		return ResponseEntity.status(HttpStatus.OK).body(allProducts);
-//	}
+    // ── Main paginated endpoint now supports optional category + search filters ──
+    @GetMapping
+    public ResponseEntity<Page<ProductResponse>> getAllProducts(
+            @RequestParam(defaultValue = "0")  int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false)    String category,
+            @RequestParam(required = false)    String search) {
+        return ResponseEntity.ok(service.getAllProducts(page, size, category, search));
+    }
 
-	@GetMapping
-	public ResponseEntity<Page<ProductResponse>> getAllProducts(@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "20") int size) {
-		return ResponseEntity.status(HttpStatus.OK).body(service.getAllProducts(page, size));
-	}
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
+        ProductResponse product = service.getProductById(id);
+        return ResponseEntity.status(HttpStatus.OK).body(product);
+    }
 
-	@GetMapping("/{id}")
-	public ResponseEntity<ProductResponse> getProductById(@PathVariable Long id) {
-		ProductResponse product = service.getProductById(id);
-		return ResponseEntity.status(HttpStatus.OK).body(product);
-	}
+    @PutMapping(value = "/{id}", consumes = "multipart/form-data")
+    public ResponseEntity<ProductResponse> updateProductById(@PathVariable Long id,
+            @RequestPart("product") ProductRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image) {
+        try {
+            ProductResponse updated = service.updateProduct(id, request, image);
+            return ResponseEntity.status(HttpStatus.OK).body(updated);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
 
-	@PutMapping(value = "/{id}", consumes = "multipart/form-data")
-	public ResponseEntity<ProductResponse> updateProductById(@PathVariable Long id,
-			@RequestPart("product") ProductRequest request,
-			@RequestPart(value = "image", required = false) MultipartFile image) { // required = false → image optional
-																					// on update
-		try {
-			ProductResponse updated = service.updateProduct(id, request, image);
-			return ResponseEntity.status(HttpStatus.OK).body(updated);
-		} catch (Exception e) {
-			return ResponseEntity.badRequest().body(null);
-		}
-	}
+    @DeleteMapping("/{id}")
+    public String delete(@PathVariable Long id) {
+        service.deleteProduct(id);
+        return "Product Deleted";
+    }
 
-	@DeleteMapping("/{id}")
-	public String delete(@PathVariable Long id) {
+    // Keep these legacy endpoints so nothing else breaks
+    @GetMapping("/search")
+    public List<ProductResponse> search(@RequestParam String name) {
+        return service.searchByName(name);
+    }
 
-		service.deleteProduct(id);
-		return "Product Deleted";
-	}
-
-	// Search
-	@GetMapping("/search")
-	public List<ProductResponse> search(@RequestParam String name) {
-
-		return service.searchByName(name);
-	}
-
-	// Category
-	@GetMapping("/category")
-	public List<ProductResponse> category(@RequestParam String cat) {
-
-		return service.getByCategory(cat);
-	}
+    @GetMapping("/category")
+    public List<ProductResponse> category(@RequestParam String cat) {
+        return service.getByCategory(cat);
+    }
 }

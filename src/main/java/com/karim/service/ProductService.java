@@ -11,19 +11,18 @@ import com.karim.dto.ProductResponse;
 
 public interface ProductService {
 
-//	ProductResponse addProduct(ProductRequest dto);
-	ProductResponse addProduct(ProductRequest dto, MultipartFile image) throws IOException;
+    ProductResponse addProduct(ProductRequest dto, MultipartFile image) throws IOException;
 
-	Page<ProductResponse> getAllProducts(int page, int size);
+    // Updated: accepts optional category and search filters
+    Page<ProductResponse> getAllProducts(int page, int size, String category, String search);
 
-	ProductResponse getProductById(Long id);
+    ProductResponse getProductById(Long id);
 
-//	ProductResponse updateProduct(Long id, ProductRequest dto);
-	ProductResponse updateProduct(Long id, ProductRequest dto, MultipartFile image) throws IOException;
+    ProductResponse updateProduct(Long id, ProductRequest dto, MultipartFile image) throws IOException;
 
-	void deleteProduct(Long id);
+    void deleteProduct(Long id);
 
-	List<ProductResponse> searchByName(String name);
+    List<ProductResponse> searchByName(String name);
 
-	List<ProductResponse> getByCategory(String category);
+    List<ProductResponse> getByCategory(String category);
 }

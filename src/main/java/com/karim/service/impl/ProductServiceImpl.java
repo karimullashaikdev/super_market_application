@@ -23,120 +23,103 @@ import com.karim.service.ProductService;
 @Service
 public class ProductServiceImpl implements ProductService {
 
-	@Autowired
-	private ProductRepository repo;
+    @Autowired
+    private ProductRepository repo;
 
-	@Autowired
-	private CloudinaryService cloudinaryService;
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
-	@Override
-	public ProductResponse addProduct(ProductRequest dto, MultipartFile image) throws IOException {
+    @Override
+    public ProductResponse addProduct(ProductRequest dto, MultipartFile image) throws IOException {
+        String imageUrl = cloudinaryService.uploadImage(image);
+        Product pro = new Product();
+        BeanUtils.copyProperties(dto, pro);
+        pro.setImageUrl(imageUrl);
+        Product saved = repo.save(pro);
+        ProductResponse res = new ProductResponse();
+        BeanUtils.copyProperties(saved, res);
+        return res;
+    }
 
-		// Step 1 — upload image to Cloudinary, get URL
-		String imageUrl = cloudinaryService.uploadImage(image);
+    @Override
+    public Page<ProductResponse> getAllProducts(int page, int size, String category, String search) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
 
-		// Step 2 — create product and set all fields
-		Product pro = new Product();
-		BeanUtils.copyProperties(dto, pro);
-		pro.setImageUrl(imageUrl); // ✅ set the URL we got from Cloudinary
+        boolean hasCategory = category != null && !category.isBlank();
+        boolean hasSearch   = search   != null && !search.isBlank();
 
-		// Step 3 — save in DB
-		Product saved = repo.save(pro);
+        Page<Product> result;
 
-		// Step 4 — return response
-		ProductResponse res = new ProductResponse();
-		BeanUtils.copyProperties(saved, res);
-		return res;
-	}
+        if (hasCategory && hasSearch) {
+            // Both filters: category match + name contains search keyword
+            result = repo.findByCategoryIgnoreCaseAndNameContainingIgnoreCaseAndDeletedFalse(
+                    category, search, pageable);
+        } else if (hasCategory) {
+            // Category filter only
+            result = repo.findByCategoryIgnoreCaseAndDeletedFalse(category, pageable);
+        } else if (hasSearch) {
+            // Search keyword only
+            result = repo.findByNameContainingIgnoreCaseAndDeletedFalse(search, pageable);
+        } else {
+            // No filters — return all products
+            result = repo.findByDeletedFalse(pageable);
+        }
 
-//	@Override
-//	public List<ProductResponse> getAllProducts() {
-//		List<Product> pros = repo.findByDeletedFalse();
-//		return pros.stream().map(pro -> {
-//			ProductResponse res = new ProductResponse();
-//			BeanUtils.copyProperties(pro, res);
-//			return res;
-//		}).collect(Collectors.toList());
-//	}
+        return result.map(pro -> {
+            ProductResponse res = new ProductResponse();
+            BeanUtils.copyProperties(pro, res);
+            return res;
+        });
+    }
 
-	@Override
-	public Page<ProductResponse> getAllProducts(int page, int size) {
-		Pageable pageable = PageRequest.of(page, size, Sort.by("name").ascending());
-		return repo.findByDeletedFalse(pageable).map(pro -> {
-			ProductResponse res = new ProductResponse();
-			BeanUtils.copyProperties(pro, res);
-			return res;
-		});
-	}
+    @Override
+    public ProductResponse getProductById(Long id) {
+        Product product = repo.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id :" + id));
+        ProductResponse res = new ProductResponse();
+        BeanUtils.copyProperties(product, res);
+        return res;
+    }
 
-	@Override
-	public ProductResponse getProductById(Long id) {
-		Product product = repo.findByIdAndDeletedFalse(id)
-				.orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id :" + id));
-		ProductResponse res = new ProductResponse();
-		BeanUtils.copyProperties(product, res);
-		return res;
-	}
+    @Override
+    public ProductResponse updateProduct(Long id, ProductRequest dto, MultipartFile image) throws IOException {
+        Product product = repo.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id : " + id));
+        BeanUtils.copyProperties(dto, product, "stock");
+        product.setStock(dto.getStock());
+        if (image != null && !image.isEmpty()) {
+            String newImageUrl = cloudinaryService.uploadImage(image);
+            product.setImageUrl(newImageUrl);
+        }
+        Product updated = repo.save(product);
+        ProductResponse res = new ProductResponse();
+        BeanUtils.copyProperties(updated, res);
+        return res;
+    }
 
-	@Override
-	public ProductResponse updateProduct(Long id, ProductRequest dto, MultipartFile image) throws IOException {
+    @Override
+    public void deleteProduct(Long id) {
+        Product product = repo.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id : " + id));
+        product.setDeleted(true);
+        repo.save(product);
+    }
 
-		Product product = repo.findByIdAndDeletedFalse(id)
-				.orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id : " + id));
+    @Override
+    public List<ProductResponse> searchByName(String name) {
+        return repo.findByNameContainingIgnoreCaseAndDeletedFalse(name).stream().map(p -> {
+            ProductResponse res = new ProductResponse();
+            BeanUtils.copyProperties(p, res);
+            return res;
+        }).collect(Collectors.toList());
+    }
 
-		// copy name, category, price, brand
-		BeanUtils.copyProperties(dto, product, "stock");
-		product.setStock(dto.getStock());
-
-		// ✅ if admin sends a new image → upload to Cloudinary and update URL
-		// ✅ if no image sent → keep the existing image as it is
-		if (image != null && !image.isEmpty()) {
-			String newImageUrl = cloudinaryService.uploadImage(image);
-			product.setImageUrl(newImageUrl);
-		}
-
-		Product updated = repo.save(product);
-		ProductResponse res = new ProductResponse();
-		BeanUtils.copyProperties(updated, res);
-		return res;
-	}
-
-	@Override
-	public void deleteProduct(Long id) {
-		Product product = repo.findByIdAndDeletedFalse(id)
-				.orElseThrow(() -> new ProductNotFoundException("Product Not found with given Id : " + id));
-		product.setDeleted(true);
-		repo.save(product);
-	}
-
-	@Override
-	public List<ProductResponse> searchByName(String name) {
-
-		List<Product> products = repo.findByNameContainingIgnoreCaseAndDeletedFalse(name);
-
-		return products.stream().map(p -> {
-
-			ProductResponse res = new ProductResponse();
-
-			BeanUtils.copyProperties(p, res);
-
-			return res;
-		}).collect(Collectors.toList());
-	}
-
-	@Override
-	public List<ProductResponse> getByCategory(String category) {
-
-		List<Product> products = repo.findByCategoryAndDeletedFalse(category);
-
-		return products.stream().map(p -> {
-
-			ProductResponse res = new ProductResponse();
-
-			BeanUtils.copyProperties(p, res);
-
-			return res;
-		}).collect(Collectors.toList());
-	}
-
+    @Override
+    public List<ProductResponse> getByCategory(String category) {
+        return repo.findByCategoryAndDeletedFalse(category).stream().map(p -> {
+            ProductResponse res = new ProductResponse();
+            BeanUtils.copyProperties(p, res);
+            return res;
+        }).collect(Collectors.toList());
+    }
 }
