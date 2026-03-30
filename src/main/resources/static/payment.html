@@ -433,7 +433,7 @@
         <div class="otp-input-row" id="otpInputRow">
           <div>
             <div style="font-size:13px;font-weight:500;margin-bottom:12px;text-align:center;color:var(--muted)">
-              Enter the 6-digit OTP sent to your registered mobile
+              Enter the 6-digit OTP sent to your registered Email-Id
             </div>
             <div class="otp-digits" id="otpDigits">
               <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" />
@@ -629,7 +629,7 @@
       // Start 30s resend countdown
       startResendTimer(30);
 
-      showToast('📲 OTP sent to your registered mobile');
+      showToast('📲 OTP sent to your registered Email-Id');
 
     } catch (err) {
       console.error('Send OTP error:', err);
