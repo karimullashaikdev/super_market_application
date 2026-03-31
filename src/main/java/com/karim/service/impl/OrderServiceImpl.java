@@ -21,106 +21,6 @@ import com.karim.repository.OrderRepository;
 import com.karim.repository.ProductRepository;
 import com.karim.service.OrderService;
 
-//@Service
-//public class OrderServiceImpl implements OrderService {
-//
-//	@Autowired
-//	private CartItemRepository cartRepo;
-//
-//	@Autowired
-//	private OrderRepository orderRepo;
-//
-//	@Autowired
-//	private ProductRepository productRepo;
-//
-//	// ===============================
-//	// CHECKOUT
-//	// ===============================
-//	@Override
-//	@Transactional
-//	public Order checkout(Long userId, CheckoutRequest request) {
-//
-//		List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
-//
-//		if (cartItems.isEmpty()) {
-//			throw new CartEmptyException("Cart is empty");
-//		}
-//
-//		Order order = new Order();
-//		order.setUserId(userId);
-//
-//		// 🔥 Set Enums Properly
-//		order.setStatus(OrderStatus.PENDING);
-//		order.setPaymentType(request.getPaymentType());
-//
-//		List<OrderItem> orderItems = cartItems.stream().map(cart -> {
-//
-//			// Fetch Product
-//			Product product = productRepo.findById(cart.getProductId())
-//					.orElseThrow(() -> new RuntimeException("Product not found"));
-//
-//			// ✅ Stock Validation (VERY IMPORTANT)
-//			if (product.getStock() < cart.getQuantity()) {
-//				throw new RuntimeException("Insufficient stock for product: " + product.getName());
-//			}
-//
-//			// ✅ Reduce Stock
-//			product.setStock(product.getStock() - cart.getQuantity());
-//
-//			OrderItem item = new OrderItem();
-//			item.setProductId(product.getId());
-//			item.setProductName(product.getName());
-//			item.setPrice(product.getPrice());
-//			item.setQuantity(cart.getQuantity());
-//			item.setOrder(order);
-//
-//			return item;
-//
-//		}).toList();
-//
-//		double total = orderItems.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
-//
-//		order.setItems(orderItems);
-//		order.setTotalAmount(total);
-//
-//		Order savedOrder = orderRepo.save(order);
-//
-//		// Clear cart after order
-//		cartRepo.deleteByUserId(userId);
-//
-//		return savedOrder;
-//	}
-//
-//	// ===============================
-//	// MY ORDERS
-//	// ===============================
-//	@Override
-//	public List<Order> getMyOrders(Long userId) {
-//
-//		return orderRepo.findByUserIdAndDeletedFalse(userId);
-//	}
-//
-//	// ===============================
-//	// VIEW SINGLE ORDER
-//	// ===============================
-//	@Override
-//	public Order getOrder(Long orderId, Long userId) {
-//
-//		Order order = orderRepo.findByIdAndDeletedFalse(orderId)
-//				.orElseThrow(() -> new RuntimeException("Order not found"));
-//
-//		if (!order.getUserId().equals(userId)) {
-//			throw new UnauthorizedException("Access denied");
-//		}
-//
-//		return order;
-//	}
-//
-//	@Override
-//	public List<OrderItemDetailsDTO> getAllOrders() {
-//		return orderRepo.fetchOrderItemDetails();
-//	}
-//}
 @Service
 public class OrderServiceImpl implements OrderService {
 
@@ -136,70 +36,70 @@ public class OrderServiceImpl implements OrderService {
     // ===============================
     // CHECKOUT
     // ===============================
-    @Override
-    @Transactional
-    public Order checkout(Long userId, CheckoutRequest request) {
-
-        List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
-
-        if (cartItems.isEmpty()) {
-            throw new CartEmptyException("Cart is empty");
-        }
-
-        Order order = new Order();
-        order.setUserId(userId);
-
-        // ✅ NEW STATUS FLOW
-        order.setStatus(OrderStatus.CREATED);
-
-        // ✅ PAYMENT
-        order.setPaymentType(request.getPaymentType());
-        order.setPaymentStatus(PaymentStatus.PENDING);
-
-        // ✅ ADDRESS (VERY IMPORTANT for delivery)
-        order.setAddress(request.getAddress());
-
-        // ===============================
-        // CREATE ORDER ITEMS
-        // ===============================
-        List<OrderItem> orderItems = cartItems.stream().map(cart -> {
-
-            Product product = productRepo.findById(cart.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
-
-            // ✅ STOCK VALIDATION
-            if (product.getStock() < cart.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName());
-            }
-
-            // ✅ REDUCE STOCK
-            product.setStock(product.getStock() - cart.getQuantity());
-
-            OrderItem item = new OrderItem();
-            item.setProductId(product.getId());
-            item.setProductName(product.getName());
-            item.setPrice(product.getPrice());
-            item.setQuantity(cart.getQuantity());
-            item.setOrder(order);
-
-            return item;
-
-        }).toList();
-
-        double total = orderItems.stream()
-                .mapToDouble(i -> i.getPrice() * i.getQuantity())
-                .sum();
-
-        order.setItems(orderItems);
-        order.setTotalAmount(total);
-
-        Order savedOrder = orderRepo.save(order);
-
-        // ✅ CLEAR CART
-        cartRepo.deleteByUserId(userId);
-
-        return savedOrder;
-    }
+//    @Override
+//    @Transactional
+//    public Order checkout(Long userId, CheckoutRequest request) {
+//
+//        List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
+//
+//        if (cartItems.isEmpty()) {
+//            throw new CartEmptyException("Cart is empty");
+//        }
+//
+//        Order order = new Order();
+//        order.setUserId(userId);
+//
+//        // ✅ NEW STATUS FLOW
+//        order.setStatus(OrderStatus.CREATED);
+//
+//        // ✅ PAYMENT
+//        order.setPaymentType(request.getPaymentType());
+//        order.setPaymentStatus(PaymentStatus.PENDING);
+//
+//        // ✅ ADDRESS (VERY IMPORTANT for delivery)
+//        order.setAddress(request.getAddress());
+//
+//        // ===============================
+//        // CREATE ORDER ITEMS
+//        // ===============================
+//        List<OrderItem> orderItems = cartItems.stream().map(cart -> {
+//
+//            Product product = productRepo.findById(cart.getProductId())
+//                    .orElseThrow(() -> new RuntimeException("Product not found"));
+//
+//            // ✅ STOCK VALIDATION
+//            if (product.getStock() < cart.getQuantity()) {
+//                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+//            }
+//
+//            // ✅ REDUCE STOCK
+//            product.setStock(product.getStock() - cart.getQuantity());
+//
+//            OrderItem item = new OrderItem();
+//            item.setProductId(product.getId());
+//            item.setProductName(product.getName());
+//            item.setPrice(product.getPrice());
+//            item.setQuantity(cart.getQuantity());
+//            item.setOrder(order);
+//
+//            return item;
+//
+//        }).toList();
+//
+//        double total = orderItems.stream()
+//                .mapToDouble(i -> i.getPrice() * i.getQuantity())
+//                .sum();
+//
+//        order.setItems(orderItems);
+//        order.setTotalAmount(total);
+//
+//        Order savedOrder = orderRepo.save(order);
+//
+//        // ✅ CLEAR CART
+//        cartRepo.deleteByUserId(userId);
+//
+//        return savedOrder;
+//    }
 
     // ===============================
     // PAYMENT SUCCESS (IMPORTANT)
@@ -247,5 +147,76 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<OrderItemDetailsDTO> getAllOrders() {
         return orderRepo.fetchOrderItemDetails();
+    }
+
+    @Override
+    @Transactional
+    public Order checkout(Long userId, CheckoutRequest request) {
+
+        List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
+
+        if (cartItems.isEmpty()) {
+            throw new CartEmptyException("Cart is empty");
+        }
+
+        // ❗ Validate Address
+        if (request.getAddress() == null || request.getAddress().trim().isEmpty()) {
+            throw new RuntimeException("Address is required");
+        }
+
+        Order order = new Order();
+        order.setUserId(userId);
+
+        // ✅ STATUS FLOW
+        order.setStatus(OrderStatus.CREATED);
+
+        // ✅ PAYMENT
+        order.setPaymentType(request.getPaymentType());
+        order.setPaymentStatus(PaymentStatus.PENDING);
+
+        // ✅ ADDRESS
+        order.setAddress(request.getAddress().trim());
+
+        // ===============================
+        // CREATE ORDER ITEMS
+        // ===============================
+        List<OrderItem> orderItems = cartItems.stream().map(cart -> {
+
+            Product product = productRepo.findById(cart.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            // ✅ STOCK VALIDATION
+            if (product.getStock() < cart.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+            }
+
+            // ✅ REDUCE STOCK
+            product.setStock(product.getStock() - cart.getQuantity());
+            productRepo.save(product); // 🔥 ensure persistence
+
+            OrderItem item = new OrderItem();
+            item.setProductId(product.getId());
+            item.setProductName(product.getName());
+            item.setPrice(product.getPrice());
+            item.setQuantity(cart.getQuantity());
+            item.setOrder(order);
+
+            return item;
+
+        }).toList();
+
+        double total = orderItems.stream()
+                .mapToDouble(i -> i.getPrice() * i.getQuantity())
+                .sum();
+
+        order.setItems(orderItems);
+        order.setTotalAmount(total);
+
+        Order savedOrder = orderRepo.save(order);
+
+        // ✅ CLEAR CART
+        cartRepo.deleteByUserId(userId);
+
+        return savedOrder;
     }
 }

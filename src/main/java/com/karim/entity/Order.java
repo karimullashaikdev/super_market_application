@@ -107,8 +107,5 @@ public class Order {
 	@Enumerated(EnumType.STRING)
 	private PaymentStatus paymentStatus;
 
-	@Enumerated(EnumType.STRING)
-	private OrderStatus orderStatus;
-
 	private Long deliveryAgentId;
 }
