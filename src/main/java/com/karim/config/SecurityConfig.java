@@ -75,6 +75,9 @@ public class SecurityConfig {
 
 						// -------- User management --------
 						.requestMatchers("/api/user/**").hasRole("ADMIN")
+						
+						// -------- Delivery --------
+						.requestMatchers("/api/delivery/**").hasRole("DELIVERY")
 
 						// -------- Any other --------
 						.anyRequest().authenticated())
