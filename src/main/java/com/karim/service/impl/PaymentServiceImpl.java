@@ -12,6 +12,7 @@ import com.karim.dto.PaymentRequest;
 import com.karim.entity.Order;
 import com.karim.entity.PaymentOtp;
 import com.karim.enums.OrderStatus;
+import com.karim.enums.PaymentStatus;
 import com.karim.exception.OrderNotFoundException;
 import com.karim.exception.UnauthorizedException;
 import com.karim.repository.CartItemRepository;
@@ -47,47 +48,44 @@ public class PaymentServiceImpl implements PaymentService {
 	@Transactional
 	public void initiatePayment(Long userId, PaymentRequest request) {
 
-	    Order order = orderRepo.findByIdAndDeletedFalse(request.getOrderId())
-	            .orElseThrow(() -> new OrderNotFoundException("Order not found"));
+		Order order = orderRepo.findByIdAndDeletedFalse(request.getOrderId())
+				.orElseThrow(() -> new OrderNotFoundException("Order not found"));
 
-	    if (!order.getUserId().equals(userId)) {
-	        throw new UnauthorizedException("Access denied for this order");
-	    }
+		if (!order.getUserId().equals(userId)) {
+			throw new UnauthorizedException("Access denied for this order");
+		}
 
-	    if (order.getStatus() == OrderStatus.CONFIRMED) {
-	        throw new RuntimeException("Order is already paid");
-	    }
+		// ✅ FIXED (CONFIRMED → PAID)
+		if (order.getStatus() == OrderStatus.PAID) {
+			throw new RuntimeException("Order is already paid");
+		}
 
-	    PaymentOtp existingOtp =
-	            otpRepo.findByOrderIdAndDeletedFalse(order.getId()).orElse(null);
+		PaymentOtp existingOtp = otpRepo.findByOrderIdAndDeletedFalse(order.getId()).orElse(null);
 
-	    String otp;
+		String otp;
 
-	    if (existingOtp != null &&
-	        !existingOtp.isVerified() &&
-	        existingOtp.getExpiry().isAfter(LocalDateTime.now())) {
+		if (existingOtp != null && !existingOtp.isVerified() && existingOtp.getExpiry().isAfter(LocalDateTime.now())) {
 
-	        otp = existingOtp.getOtp(); // reuse existing OTP
+			otp = existingOtp.getOtp();
 
-	    } else {
+		} else {
 
-	        otp = generateOtp();
+			otp = generateOtp();
 
-	        PaymentOtp paymentOtp = new PaymentOtp();
-	        paymentOtp.setOrderId(order.getId());
-	        paymentOtp.setOtp(otp);
-	        paymentOtp.setExpiry(LocalDateTime.now().plusMinutes(5));
-	        paymentOtp.setVerified(false);
-	        paymentOtp.setDeleted(false);
+			PaymentOtp paymentOtp = new PaymentOtp();
+			paymentOtp.setOrderId(order.getId());
+			paymentOtp.setOtp(otp);
+			paymentOtp.setExpiry(LocalDateTime.now().plusMinutes(5));
+			paymentOtp.setVerified(false);
+			paymentOtp.setDeleted(false);
 
-	        otpRepo.save(paymentOtp);
-	    }
+			otpRepo.save(paymentOtp);
+		}
 
-	    // ✅ Send ONLY OTP email (no PDF)
-	    String email = userService.getCurrentUserEmail();
-	    emailService.sendOtpEmail(email, otp);
+		String email = userService.getCurrentUserEmail();
+		emailService.sendOtpEmail(email, otp);
 
-	    System.out.println("OTP sent to " + email + " for Order ID: " + order.getId());
+		System.out.println("OTP sent to " + email + " for Order ID: " + order.getId());
 	}
 
 	// =================================
@@ -97,48 +95,54 @@ public class PaymentServiceImpl implements PaymentService {
 	@Transactional
 	public void verifyOtp(Long userId, OtpVerifyRequest request) {
 
-	    PaymentOtp otp = otpRepo.findByOrderIdAndDeletedFalse(request.getOrderId())
-	            .orElseThrow(() -> new RuntimeException("OTP not found"));
+		PaymentOtp otp = otpRepo.findByOrderIdAndDeletedFalse(request.getOrderId())
+				.orElseThrow(() -> new RuntimeException("OTP not found"));
 
-	    Order order = orderRepo.findByIdAndDeletedFalse(request.getOrderId())
-	            .orElseThrow(() -> new OrderNotFoundException("Order not found"));
+		Order order = orderRepo.findByIdAndDeletedFalse(request.getOrderId())
+				.orElseThrow(() -> new OrderNotFoundException("Order not found"));
 
-	    if (!order.getUserId().equals(userId)) {
-	        throw new UnauthorizedException("Access denied");
-	    }
+		if (!order.getUserId().equals(userId)) {
+			throw new UnauthorizedException("Access denied");
+		}
 
-	    if (otp.isVerified()) {
-	        throw new RuntimeException("OTP already verified");
-	    }
+		if (otp.isVerified()) {
+			throw new RuntimeException("OTP already verified");
+		}
 
-	    if (otp.getExpiry().isBefore(LocalDateTime.now())) {
-	        throw new RuntimeException("OTP expired");
-	    }
+		if (otp.getExpiry().isBefore(LocalDateTime.now())) {
+			throw new RuntimeException("OTP expired");
+		}
 
-	    if (!otp.getOtp().equals(request.getOtp())) {
-	        throw new RuntimeException("Invalid OTP");
-	    }
+		if (!otp.getOtp().equals(request.getOtp())) {
+			throw new RuntimeException("Invalid OTP");
+		}
 
-	    // ✅ Mark OTP verified
-	    otp.setVerified(true);
+		// ✅ Mark OTP verified
+		otp.setVerified(true);
+		otpRepo.save(otp);
 
-	    // ✅ Update order status
-	    order.setStatus(OrderStatus.CONFIRMED);
+		// ✅ FIXED STATUS FLOW
+		order.setStatus(OrderStatus.PAID);
 
-	    // 🔥 NOW Generate Invoice
-	    byte[] pdf = PdfUtil.generateBill(order);
+		// ✅ ADD PAYMENT STATUS
+		order.setPaymentStatus(PaymentStatus.SUCCESS);
 
-	    String email = userService.getCurrentUserEmail();
+		orderRepo.save(order);
 
-	    emailService.sendInvoiceEmail(email, pdf);
+		// 🔥 Generate Invoice
+		byte[] pdf = PdfUtil.generateBill(order);
 
-	    System.out.println("Payment successful. Invoice sent for Order ID: " + order.getId());
+		String email = userService.getCurrentUserEmail();
+
+		emailService.sendInvoiceEmail(email, pdf);
+
+		System.out.println("Payment successful. Invoice sent for Order ID: " + order.getId());
 	}
 
 	// =================================
 	// HELPER
 	// =================================
 	private String generateOtp() {
-		return String.valueOf(new Random().nextInt(900000) + 100000); // 6 digit
+		return String.valueOf(new Random().nextInt(900000) + 100000);
 	}
 }

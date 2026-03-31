@@ -8,4 +8,7 @@ import lombok.Data;
 public class CheckoutRequest {
 
 	private PaymentType paymentType;
+	
+	 // ✅ ADD THIS
+    private String address;
 }

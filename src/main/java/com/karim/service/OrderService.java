@@ -15,4 +15,7 @@ public interface OrderService {
 	Order getOrder(Long orderId, Long userId);
 
 	List<OrderItemDetailsDTO> getAllOrders();
+	
+	 // ✅ NEW METHOD (ADD THIS)
+    Order markOrderAsPaid(Long orderId);
 }
