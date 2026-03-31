@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import com.karim.dto.OrderItemDetailsDTO;
 import com.karim.entity.Order;
+import com.karim.enums.OrderStatus;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
@@ -35,4 +36,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 		    JOIN o.items oi
 		""")
 		List<OrderItemDetailsDTO> fetchOrderItemDetails();
+	
+	// new code
+	List<Order> findByStatusAndDeletedFalse(OrderStatus status);
 }

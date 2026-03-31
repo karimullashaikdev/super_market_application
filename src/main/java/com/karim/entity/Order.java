@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.karim.enums.OrderStatus;
+import com.karim.enums.PaymentStatus;
 import com.karim.enums.PaymentType;
 
 import jakarta.persistence.CascadeType;
@@ -99,4 +100,15 @@ public class Order {
 	public void preUpdate() {
 		this.updatedAt = LocalDateTime.now();
 	}
+	
+	// new code
+	private String address;
+
+	@Enumerated(EnumType.STRING)
+	private PaymentStatus paymentStatus;
+
+	@Enumerated(EnumType.STRING)
+	private OrderStatus orderStatus;
+
+	private Long deliveryAgentId;
 }

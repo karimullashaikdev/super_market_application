@@ -46,11 +46,21 @@ public class AdminReportServiceImpl implements AdminReportService {
 	// =================================
 	// Get total revenue
 	// =================================
+//	@Override
+//	public Double getTotalRevenue() {
+//
+//		return orderRepo.findByDeletedFalse().stream().filter(o -> o.getStatus() == OrderStatus.CONFIRMED)
+//				.mapToDouble(o -> o.getTotalAmount() != null ? o.getTotalAmount() : 0.0).sum();
+//	}
+	
+	// new code
 	@Override
 	public Double getTotalRevenue() {
 
-		return orderRepo.findByDeletedFalse().stream().filter(o -> o.getStatus() == OrderStatus.CONFIRMED)
-				.mapToDouble(o -> o.getTotalAmount() != null ? o.getTotalAmount() : 0.0).sum();
+	    return orderRepo.findByDeletedFalse().stream()
+	            .filter(o -> o.getStatus() == OrderStatus.DELIVERED)
+	            .mapToDouble(o -> o.getTotalAmount() != null ? o.getTotalAmount() : 0.0)
+	            .sum();
 	}
 
 	// =================================
@@ -81,7 +91,7 @@ public class AdminReportServiceImpl implements AdminReportService {
 		for (Order order : orders) {
 
 			// Only count successful orders
-			if (order.getStatus() == null || order.getStatus() != OrderStatus.CONFIRMED) {
+			if (order.getStatus() == null || order.getStatus() != OrderStatus.DELIVERED) {
 				continue;
 			}
 

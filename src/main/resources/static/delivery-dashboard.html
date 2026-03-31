@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delivery Dashboard</title>
+</head>
+<body>
+
+<h2>🚚 Delivery Agent Dashboard</h2>
+
+<button onclick="loadOrders()">📦 Load Available Orders</button>
+
+<div id="orders"></div>
+
+<script>
+
+// 🔹 Load Available (PAID) Orders
+function loadOrders(){
+    fetch('http://localhost:8080/api/delivery/available', {
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+
+        let html = '';
+
+        if(data.length === 0){
+            html = "<p>No orders available</p>";
+        }
+
+        data.forEach(o => {
+            html += `
+                <div style="border:1px solid black; padding:10px; margin:10px;">
+                    <p><b>Order ID:</b> ${o.id}</p>
+                    <p><b>Total Amount:</b> ₹${o.totalAmount}</p>
+                    <p><b>Address:</b> ${o.address}</p>
+
+                    <button onclick="acceptOrder(${o.id})">✅ Accept</button>
+                    <button onclick="openMap(\`${o.address}\`)">🗺️ Open Map</button>
+                </div>
+            `;
+        });
+
+        document.getElementById('orders').innerHTML = html;
+    })
+    .catch(err => console.error(err));
+}
+
+
+// 🔹 Accept Order
+function acceptOrder(orderId){
+    fetch('http://localhost:8080/api/delivery/accept/' + orderId, {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+        }
+    })
+    .then(res => res.text())
+    .then(msg => {
+        alert(msg);
+        loadOrders(); // refresh orders
+    })
+    .catch(err => console.error(err));
+}
+
+
+// 🔹 Open Google Maps
+function openMap(address){
+    const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(address);
+    window.open(url, '_blank');
+}
+
+</script>
+
+</body>
+</html>

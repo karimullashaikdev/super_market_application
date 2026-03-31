@@ -30,22 +30,7 @@ public class OrderController {
 	@Autowired
 	private UserService userService;
 
-	// ===============================
-	// CHECKOUT
-	// ===============================
-//	@PostMapping("/checkout")
-//	public ResponseEntity<?> checkout(@RequestBody CheckoutRequest request) {
-//		try {
-//			Long userId = userService.getCurrentUserId();
-//			Order order = orderService.checkout(userId, request);
-//			return ResponseEntity.ok(order);
-//
-//		} catch (CartEmptyException ex) {
-//			return ResponseEntity.badRequest().body(ex.getMessage());
-//		} catch (RuntimeException ex) {
-//			return ResponseEntity.status(500).body(ex.getMessage());
-//		}
-//	}
+	
 	@PostMapping("/checkout")
 	public ResponseEntity<?> checkout(@RequestBody CheckoutRequest request) {
 		try {
@@ -92,11 +77,6 @@ public class OrderController {
 		}
 	}
 
-//	@GetMapping("/all")
-//	public ResponseEntity<List<OrderItemDetailsDTO>> getAllOrders() {
-//		List<OrderItemDetailsDTO> allOrders = orderService.getAllOrders();
-//		return ResponseEntity.status(HttpStatus.OK).body(allOrders);
-//	}
 	@GetMapping("/all")
 	public ResponseEntity<List<OrderItemDetailsDTO>> getAllOrders() {
 		try {
