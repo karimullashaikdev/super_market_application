@@ -16,28 +16,30 @@ import lombok.Data;
 @Entity
 @Data
 public class User {
-	@Id
-	@GeneratedValue(strategy = GenerationType.IDENTITY)
-	private Long id;
-	private String name;
-	@Column(unique = true)
-	private String email;
-	private String password;
-	private String role;
-	private LocalDateTime createdAt;
-	private LocalDateTime updatedAt;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    @Column(unique = true)
+    private String email;
+    private String password;
+    private String role;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-	@PrePersist
-	public void onCreate() {
-		this.createdAt = LocalDateTime.now();
-		this.updatedAt = LocalDateTime.now();
-	}
+    // ✅ NEW FIELD — add this to your existing User entity
+    // Also update your registration/profile frontend to send this field
+    @Column(name = "mobile_number", length = 15)
+    private String mobileNumber;
 
-	@PreUpdate
-	public void onUpdate() {
-		this.updatedAt = LocalDateTime.now();
-	}
-	
-	// new code
-	
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }

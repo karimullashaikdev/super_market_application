@@ -31,13 +31,27 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductResponse addProduct(ProductRequest dto, MultipartFile image) throws IOException {
-        String imageUrl = cloudinaryService.uploadImage(image);
+
+        String imageUrl = null;
+
+        // ✅ Handle image safely
+        if (image != null && !image.isEmpty()) {
+            imageUrl = cloudinaryService.uploadImage(image);
+        }
+
         Product pro = new Product();
         BeanUtils.copyProperties(dto, pro);
-        pro.setImageUrl(imageUrl);
+
+        // ✅ Only set image if available
+        if (imageUrl != null) {
+            pro.setImageUrl(imageUrl);
+        }
+
         Product saved = repo.save(pro);
+
         ProductResponse res = new ProductResponse();
         BeanUtils.copyProperties(saved, res);
+
         return res;
     }
 

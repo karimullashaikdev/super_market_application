@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Track Your Order — Karim Mart</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f0f4f8; --white: #ffffff; --surface: #f8f9fb;
+    --accent: #f5a623; --accent2: #e8522a; --green: #22c55e;
+    --blue: #3b82f6; --text: #1a1d23; --muted: #6b7280; --border: #e5e7eb;
+  }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* NAV */
+  nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: grid; place-items: center; font-size: 15px; }
+
+  /* MAIN */
+  .main { max-width: 560px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  /* STATUS CARD */
+  .status-card { background: var(--white); border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
+  .status-header { padding: 22px 24px; background: linear-gradient(135deg, #1a2035, #0f1628); color: #fff; }
+  .status-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .order-num { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+  .order-num span { color: var(--accent); }
+  .live-pill { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 20px; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+  .status-sub { font-size: 13px; color: rgba(255,255,255,0.6); }
+  .status-body { padding: 22px 24px; }
+
+  /* TRACKER STEPS */
+  .tracker { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; }
+  .step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); position: relative; }
+  .step:last-child { border-bottom: none; }
+  .step-dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; transition: all .3s; }
+  .step-dot.done { background: rgba(34,197,94,.12); border: 2px solid rgba(34,197,94,.4); }
+  .step-dot.active { background: rgba(245,166,35,.12); border: 2px solid rgba(245,166,35,.5); animation: pulse 1.5s infinite; }
+  .step-dot.pending { background: #f3f4f6; border: 2px solid var(--border); filter: grayscale(1); opacity: .5; }
+  .step-info { flex: 1; padding-top: 6px; }
+  .step-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .step-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .step-time { font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 3px; }
+
+  /* MAP */
+  .map-card { background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.07); margin-bottom: 20px; }
+  .map-card-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+  .map-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .map-update { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap:5px; }
+  iframe.map { width: 100%; height: 300px; border: none; display: block; }
+  .map-footer { padding: 10px 16px; font-size: 12px; color: var(--muted); background: var(--surface); display: flex; align-items: center; gap: 6px; }
+
+  /* AGENT CARD */
+  .agent-card { background: var(--white); border-radius: 16px; padding: 18px 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); margin-bottom: 20px; }
+  .agent-card-title { font-family: 'Syne', sans-serif; font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
+  .agent-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .agent-row:last-child { margin-bottom:0; }
+  .agent-icon { width:36px; height:36px; border-radius:10px; background:var(--surface); border:1px solid var(--border); display:grid; place-items:center; font-size:16px; flex-shrink:0; }
+  .agent-label { font-size:11px; color:var(--muted); margin-bottom:2px; }
+  .agent-val { font-size:14px; font-weight:600; color:var(--text); }
+
+  /* ORDER SUMMARY */
+  .summary-card { background: var(--white); border-radius: 16px; padding: 18px 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); }
+  .summary-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
+  .summary-row { display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border); }
+  .summary-row:last-child { border-bottom:none; font-weight:700; font-size:14px; }
+  .summary-row .s-label { color:var(--muted); }
+  .summary-row .s-val { color:var(--text); font-weight:500; }
+
+  /* LOADING / ERROR */
+  .loading-wrap { text-align:center; padding:60px 20px; }
+  .loader { width:44px; height:44px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .error-wrap { text-align:center; padding:60px 20px; }
+  .error-icon { font-size:48px; margin-bottom:12px; }
+
+  /* DELIVERED BANNER */
+  .delivered-banner { background:linear-gradient(135deg,#14532d,#166534); border-radius:16px; padding:20px 24px; text-align:center; color:#fff; margin-bottom:20px; }
+  .delivered-banner .d-icon { font-size:40px; margin-bottom:8px; }
+  .delivered-banner h2 { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; margin-bottom:6px; }
+  .delivered-banner p { font-size:13px; color:rgba(255,255,255,0.75); }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo"><div class="logo-icon">🛵</div>Karim Mart</div>
+</nav>
+
+<div class="main" id="mainContent">
+  <!-- Loading state -->
+  <div class="loading-wrap" id="loadingState">
+    <div class="loader"></div>
+    <p style="color:var(--muted);font-size:14px">Loading your order details…</p>
+  </div>
+</div>
+
+<script>
+  // ─────────────────────────────────────────────
+  // CONFIG — auto-detects dev vs prod from window.location
+  // ─────────────────────────────────────────────
+  const API_BASE = window.location.origin; // e.g. http://localhost:8080 or https://yourdomain.com
+
+  // ─────────────────────────────────────────────
+  // Get orderId from URL: tracking.html?orderId=1001
+  // ─────────────────────────────────────────────
+  const params = new URLSearchParams(window.location.search);
+  const orderId = params.get('orderId');
+
+  let orderData = null;
+  let mapUpdateTimer = null;
+
+  // ─────────────────────────────────────────────
+  // INIT
+  // ─────────────────────────────────────────────
+  if (!orderId) {
+    showError('No order ID found in the link. Please use the link from your email.');
+  } else {
+    fetchOrderStatus();
+    // Auto-refresh every 5 seconds while not delivered
+    setInterval(() => {
+      if (orderData && orderData.status !== 'DELIVERED') fetchOrderStatus();
+    }, 5000);
+  }
+
+  // ─────────────────────────────────────────────
+  // FETCH from /api/delivery/track/{orderId}
+  // ─────────────────────────────────────────────
+  async function fetchOrderStatus() {
+    try {
+      const res = await fetch(`${API_BASE}/api/delivery/track/${orderId}`);
+      if (!res.ok) throw new Error(await res.text());
+      orderData = await res.json();
+      renderPage(orderData);
+    } catch (err) {
+      showError('Could not load order details. ' + err.message);
+    }
+  }
+
+  // ─────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────
+  function renderPage(data) {
+    const main = document.getElementById('mainContent');
+    const status = data.status; // PAID | ASSIGNED | OUT_FOR_DELIVERY | DELIVERED
+    const isDelivered = status === 'DELIVERED';
+    const isOut = status === 'OUT_FOR_DELIVERY';
+
+    // Step states
+    const steps = [
+      { icon: '🧾', label: 'Order Placed', sub: 'Your order was confirmed and paid', done: true, active: false },
+      { icon: '🤝', label: 'Agent Assigned', sub: data.agentName ? `${data.agentName} is your delivery agent` : 'Assigning a delivery agent…', done: ['ASSIGNED','OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: status === 'ASSIGNED' },
+      { icon: '🛵', label: 'Out for Delivery', sub: 'Agent is heading to your location', done: ['OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: status === 'OUT_FOR_DELIVERY' },
+      { icon: '📦', label: 'Delivered', sub: 'Your order has been delivered', done: isDelivered, active: false },
+    ];
+
+    let html = '';
+
+    // Delivered banner
+    if (isDelivered) {
+      html += `<div class="delivered-banner">
+        <div class="d-icon">🎉</div>
+        <h2>Order Delivered!</h2>
+        <p>Your order #${orderId} was successfully delivered. Thank you for shopping with Karim Mart!</p>
+      </div>`;
+    }
+
+    // Status card
+    html += `<div class="status-card">
+      <div class="status-header">
+        <div class="status-header-top">
+          <div class="order-num">Order <span>#${orderId}</span></div>
+          ${!isDelivered ? `<div class="live-pill"><div class="live-dot"></div>Live</div>` : '<div class="live-pill" style="background:rgba(34,197,94,.2)">✅ Done</div>'}
+        </div>
+        <div class="status-sub">Tracking your delivery in real-time</div>
+      </div>
+      <div class="status-body">
+        <div class="tracker">
+          ${steps.map(s => `
+            <div class="step">
+              <div class="step-dot ${s.done ? 'done' : s.active ? 'active' : 'pending'}">${s.done ? '✓' : s.icon}</div>
+              <div class="step-info">
+                <div class="step-label">${s.label}</div>
+                <div class="step-sub">${s.sub}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+
+    // Live map (show when agent is out for delivery or assigned)
+    if ((isOut || status === 'ASSIGNED') && data.address) {
+      const encodedAddr = encodeURIComponent(data.address + ', Hyderabad');
+      const mapSrc = `https://maps.google.com/maps?q=${encodedAddr}&output=embed`;
+      html += `<div class="map-card">
+        <div class="map-card-header">
+          <div class="map-card-title">📍 Delivery Location</div>
+          <div class="map-update"><div class="live-dot"></div><span id="mapUpdateLabel">Live</span></div>
+        </div>
+        <iframe class="map" id="trackMap" src="${mapSrc}" allowfullscreen loading="lazy"></iframe>
+        <div class="map-footer"><div class="live-dot"></div>Agent location updates every 5 seconds</div>
+      </div>`;
+    }
+
+    // Agent info (if assigned)
+    if (data.agentName) {
+      html += `<div class="agent-card">
+        <div class="agent-card-title">🛵 Your Delivery Agent</div>
+        <div class="agent-row"><div class="agent-icon">🪪</div><div><div class="agent-label">Agent ID</div><div class="agent-val">${data.agentId || '—'}</div></div></div>
+        <div class="agent-row"><div class="agent-icon">👤</div><div><div class="agent-label">Name</div><div class="agent-val">${data.agentName}</div></div></div>
+        <div class="agent-row"><div class="agent-icon">📱</div><div><div class="agent-label">Mobile</div><div class="agent-val">${data.agentMobile || '—'}</div></div></div>
+      </div>`;
+    }
+
+    // Order summary
+    html += `<div class="summary-card">
+      <div class="summary-title">📦 Order Summary</div>
+      <div class="summary-row"><span class="s-label">Order #</span><span class="s-val">${orderId}</span></div>
+      <div class="summary-row"><span class="s-label">Address</span><span class="s-val">${data.address || '—'}</span></div>
+      <div class="summary-row"><span class="s-label">Payment</span><span class="s-val">${data.paymentType || '—'}</span></div>
+      <div class="summary-row"><span class="s-label">Total</span><span class="s-val">₹${Number(data.totalAmount || 0).toLocaleString('en-IN', {minimumFractionDigits:2})}</span></div>
+    </div>`;
+
+    main.innerHTML = html;
+
+    // Start updating map timestamp
+    startMapUpdateTick();
+  }
+
+  function startMapUpdateTick() {
+    if (mapUpdateTimer) clearInterval(mapUpdateTimer);
+    mapUpdateTimer = setInterval(() => {
+      const el = document.getElementById('mapUpdateLabel');
+      if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+    }, 5000);
+  }
+
+  function showError(msg) {
+    document.getElementById('mainContent').innerHTML = `
+      <div class="error-wrap">
+        <div class="error-icon">😕</div>
+        <p style="font-size:15px;font-weight:600;margin-bottom:8px">Something went wrong</p>
+        <p style="font-size:13px;color:var(--muted)">${msg}</p>
+      </div>`;
+  }
+</script>
+</body>
+</html>

@@ -39,4 +39,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	
 	// new code
 	List<Order> findByStatusAndDeletedFalse(OrderStatus status);
+	
+	// ✅ NEW — needed by DeliveryController
+    List<Order> findByStatusAndDeliveryAgentIdIsNull(OrderStatus status);
+
+    List<Order> findByDeliveryAgentId(Long deliveryAgentId);
 }

@@ -300,6 +300,27 @@
   .toast { position:fixed;bottom:28px;right:28px;background:var(--text);color:white;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;opacity:0;transform:translateY(12px);transition:all 0.3s;pointer-events:none;z-index:999; }
   .toast.show { opacity:1;transform:translateY(0); }
 
+  /* ── Delivery address banner ── */
+  .delivery-banner {
+    max-width: 900px; margin: 24px auto 0; padding: 0 40px;
+    animation: fadeUp 0.4s ease both;
+  }
+  .delivery-banner-inner {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+  }
+  .delivery-banner-icon { font-size: 22px; flex-shrink: 0; }
+  .delivery-banner-info { flex: 1; }
+  .delivery-banner-label { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--accent); margin-bottom: 3px; }
+  .delivery-banner-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .delivery-banner-addr { font-size: 13px; color: var(--muted); font-weight: 300; }
+  .delivery-change-btn {
+    font-size: 13px; color: var(--accent); font-weight: 500; background: none;
+    border: 1px solid var(--accent-border); border-radius: 8px; padding: 6px 14px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; white-space: nowrap;
+  }
+  .delivery-change-btn:hover { background: var(--accent-light); }
+
   /* COD note */
   .cod-note {
     background: #fff8e1; border: 1px solid #ffe082;
@@ -315,7 +336,7 @@
 <nav>
   <div class="nav-logo"><span>✦</span> Karim</div>
   <div class="nav-right">
-    <button class="back-btn" onclick="window.location.href='cart.html'">← Back to Cart</button>
+    <button class="back-btn" onclick="window.location.href='delivery.html'">← Change Address</button>
   </div>
 </nav>
 
@@ -326,14 +347,27 @@
     <span class="step-label">Cart</span>
   </div>
   <div class="step-line done"></div>
+  <div class="step done">
+    <div class="step-dot">✓</div>
+    <span class="step-label">Delivery</span>
+  </div>
+  <div class="step-line done"></div>
   <div class="step active">
-    <div class="step-dot">2</div>
+    <div class="step-dot">3</div>
     <span class="step-label">Payment</span>
   </div>
-  <div class="step-line"></div>
-  <div class="step idle">
-    <div class="step-dot">3</div>
-    <span class="step-label">Confirmation</span>
+</div>
+
+<!-- Delivery address banner -->
+<div class="delivery-banner" id="deliveryBanner" style="display:none">
+  <div class="delivery-banner-inner">
+    <div class="delivery-banner-icon">📦</div>
+    <div class="delivery-banner-info">
+      <div class="delivery-banner-label">Delivering to</div>
+      <div class="delivery-banner-name" id="bannerName"></div>
+      <div class="delivery-banner-addr" id="bannerAddr"></div>
+    </div>
+    <button class="delivery-change-btn" onclick="window.location.href='delivery.html'">Change</button>
   </div>
 </div>
 
@@ -503,6 +537,24 @@
   const token = localStorage.getItem('authToken');
   if (!token) window.location.href = 'login.html';
 
+  // ── Load & show saved delivery address ──────────────────────────────────────
+  (function loadDeliveryAddress() {
+    const raw = localStorage.getItem('karim_delivery_address');
+    if (!raw) return;
+    try {
+      const addr = JSON.parse(raw);
+      document.getElementById('bannerName').textContent =
+        (addr.name || '') + (addr.phone ? '  •  📞 ' + addr.phone : '');
+      document.getElementById('bannerAddr').textContent =
+        (addr.line1 || '') +
+        (addr.line2  ? ', ' + addr.line2 : '') +
+        (addr.city   ? ', ' + addr.city  : '') +
+        (addr.state  ? ', ' + addr.state : '') +
+        (addr.pin    ? ' – ' + addr.pin  : '');
+      document.getElementById('deliveryBanner').style.display = 'block';
+    } catch { /* no address saved */ }
+  })();
+
   // ── Load summary from cart ──────────────────────────────────────────────────
   (function loadSummary() {
     const raw = localStorage.getItem('checkoutSummary');
@@ -572,14 +624,27 @@
     btn.innerHTML = '<span>⏳</span> Processing…';
 
     try {
-      // Step 1: Create the order via checkout API
+      // Step 1: Validate addressId saved by delivery.html
+      const addressId = Number(localStorage.getItem('karim_selected_address_id'));
+      if (!addressId) {
+        showToast('❌ No delivery address selected. Please go back and select one.', true);
+        btn.disabled = false;
+        btn.innerHTML = '<span>📲</span> Send OTP';
+        return;
+      }
+
+      // Step 2: Create the order — send both paymentType AND addressId
+      // addressId maps to CheckoutRequest.addressId (Long) in OrderServiceImpl.checkout()
       const checkoutRes = await fetch('/api/order/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token
         },
-        body: JSON.stringify({ paymentType: selectedPaymentType })
+        body: JSON.stringify({
+          paymentType: selectedPaymentType,
+          addressId: addressId
+        })
       });
 
       if (checkoutRes.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
@@ -646,13 +711,25 @@
     btn.innerHTML = '<span>⏳</span> Placing Order…';
 
     try {
+      // Validate addressId saved by delivery.html
+      const addressId = Number(localStorage.getItem('karim_selected_address_id'));
+      if (!addressId) {
+        showToast('❌ No delivery address selected. Please go back and select one.', true);
+        btn.disabled = false;
+        btn.innerHTML = '<span>✅</span> Confirm Order';
+        return;
+      }
+
       const res = await fetch('/api/order/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token
         },
-        body: JSON.stringify({ paymentType: 'COD' })
+        body: JSON.stringify({
+          paymentType: 'COD',
+          addressId: addressId
+        })
       });
 
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }

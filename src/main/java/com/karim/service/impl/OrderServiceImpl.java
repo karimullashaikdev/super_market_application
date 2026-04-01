@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.karim.dto.CheckoutRequest;
 import com.karim.dto.OrderItemDetailsDTO;
+import com.karim.entity.Address;
 import com.karim.entity.CartItem;
 import com.karim.entity.Order;
 import com.karim.entity.OrderItem;
@@ -16,6 +17,7 @@ import com.karim.enums.OrderStatus;
 import com.karim.enums.PaymentStatus;
 import com.karim.exception.CartEmptyException;
 import com.karim.exception.UnauthorizedException;
+import com.karim.repository.AddressRepository;
 import com.karim.repository.CartItemRepository;
 import com.karim.repository.OrderRepository;
 import com.karim.repository.ProductRepository;
@@ -32,6 +34,9 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private ProductRepository productRepo;
+    
+    @Autowired
+    private AddressRepository addressRepo;
 
     // ===============================
     // CHECKOUT
@@ -159,10 +164,11 @@ public class OrderServiceImpl implements OrderService {
             throw new CartEmptyException("Cart is empty");
         }
 
-        // ❗ Validate Address
-        if (request.getAddress() == null || request.getAddress().trim().isEmpty()) {
-            throw new RuntimeException("Address is required");
-        }
+        // ✅ Fetch address entity and validate ownership
+        Address deliveryAddress = addressRepo
+                .findByIdAndUserId(request.getAddressId(), userId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Address is required. Please select a delivery address."));
 
         Order order = new Order();
         order.setUserId(userId);
@@ -174,8 +180,8 @@ public class OrderServiceImpl implements OrderService {
         order.setPaymentType(request.getPaymentType());
         order.setPaymentStatus(PaymentStatus.PENDING);
 
-        // ✅ ADDRESS
-        order.setAddress(request.getAddress().trim());
+        // ✅ ADDRESS — formatted string from the entity
+        order.setAddress(deliveryAddress.toFormattedString());
 
         // ===============================
         // CREATE ORDER ITEMS
@@ -192,7 +198,7 @@ public class OrderServiceImpl implements OrderService {
 
             // ✅ REDUCE STOCK
             product.setStock(product.getStock() - cart.getQuantity());
-            productRepo.save(product); // 🔥 ensure persistence
+            productRepo.save(product);
 
             OrderItem item = new OrderItem();
             item.setProductId(product.getId());

@@ -78,6 +78,9 @@ public class SecurityConfig {
 						
 						// -------- Delivery --------
 						.requestMatchers("/api/delivery/**").hasRole("DELIVERY")
+						
+						// -------- Addresses --------
+						.requestMatchers("/api/addresses/**").hasAnyRole("USER", "ADMIN","DELIVERY")
 
 						// -------- Any other --------
 						.anyRequest().authenticated())

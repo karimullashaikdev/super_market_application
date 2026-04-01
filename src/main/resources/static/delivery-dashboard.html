@@ -1,79 +1,1023 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Delivery Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Delivery Dashboard – Karim</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a22;
+    --surface2: #1e2330;
+    --border: #272d3d;
+    --accent: #f5a623;
+    --accent2: #e8522a;
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --red: #ef4444;
+    --text: #f0f2f7;
+    --muted: #6b7280;
+    --muted2: #9ca3af;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+
+  /* ── Top Nav ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-left { display: flex; align-items: center; gap: 16px; }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-size: 16px;
+  }
+  .agent-badge {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(245,166,35,0.12);
+    color: var(--accent);
+    border: 1px solid rgba(245,166,35,0.3);
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-agent-name {
+    font-size: 13px;
+    color: var(--muted2);
+    font-weight: 500;
+  }
+  .nav-agent-name strong { color: var(--text); }
+
+  /* Auto-refresh indicator */
+  .refresh-indicator {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--muted);
+  }
+  .refresh-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse-dot 2s infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .logout-btn {
+    background: rgba(239,68,68,0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .logout-btn:hover { background: rgba(239,68,68,0.2); border-color: rgba(239,68,68,0.5); }
+
+  /* ── Main layout ── */
+  .main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 28px 28px 80px;
+  }
+
+  /* ── Stats row ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    animation: slideUp 0.4s ease both;
+  }
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  .stat-icon {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .stat-icon.orange { background: rgba(245,166,35,0.12); }
+  .stat-icon.green  { background: rgba(34,197,94,0.12); }
+  .stat-icon.blue   { background: rgba(59,130,246,0.12); }
+  .stat-icon.red    { background: rgba(232,82,42,0.12); }
+  .stat-info { flex: 1; }
+  .stat-val {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-label { font-size: 12px; color: var(--muted); font-weight: 400; }
+
+  /* ── Section headers ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-count {
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted2);
+    padding: 2px 9px;
+    border-radius: 20px;
+  }
+  .section-count.active { background: rgba(245,166,35,0.12); color: var(--accent); border-color: rgba(245,166,35,0.3); }
+
+  .refresh-btn {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 12px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .refresh-btn:hover { color: var(--accent); border-color: rgba(245,166,35,0.4); }
+  .refresh-btn.spinning .ri { animation: spin 0.6s linear; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Two-column layout ── */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  /* ── Order cards ── */
+  .orders-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .order-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    transition: border-color 0.2s, transform 0.15s;
+    animation: slideUp 0.35s ease both;
+  }
+  .order-card:hover { border-color: rgba(245,166,35,0.35); transform: translateY(-1px); }
+
+  .order-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .order-id {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .order-id span { color: var(--accent); }
+
+  /* Status badges */
+  .badge {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+  }
+  .badge.paid         { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+  .badge.assigned     { background: rgba(245,166,35,0.12); color: var(--accent); border: 1px solid rgba(245,166,35,0.3); }
+  .badge.out_delivery { background: rgba(232,82,42,0.12); color: #f97316; border: 1px solid rgba(232,82,42,0.3); }
+  .badge.delivered    { background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+
+  .order-details { margin-bottom: 14px; }
+  .order-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted2);
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+  .order-row .icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .order-row strong { color: var(--text); font-weight: 500; }
+
+  .order-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .order-meta-item { display: flex; align-items: center; gap: 4px; }
+
+  .order-actions { display: flex; gap: 8px; }
+
+  /* Action buttons */
+  .btn {
+    flex: 1;
+    padding: 10px 16px;
+    border-radius: 9px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+  .btn-accept  { background: linear-gradient(135deg, var(--accent), #e8943a); color: #000; }
+  .btn-accept:hover:not(:disabled)  { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(245,166,35,0.35); }
+  .btn-start   { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+  .btn-start:hover:not(:disabled)   { background: rgba(59,130,246,0.25); transform: translateY(-1px); }
+  .btn-deliver { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .btn-deliver:hover:not(:disabled) { background: rgba(34,197,94,0.25); transform: translateY(-1px); }
+  .btn-done    { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); cursor: default; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--muted);
+  }
+  .empty-state .e-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; font-weight: 300; line-height: 1.6; }
+  .empty-state p strong { color: var(--muted2); font-weight: 500; }
+
+  /* ── Skeleton ── */
+  .skeleton {
+    background: linear-gradient(90deg, var(--surface2) 25%, #252b3a 50%, var(--surface2) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 6px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .skeleton-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 9999;
+  }
+  .toast {
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex; align-items: center; gap: 8px;
+    animation: toastIn 0.3s ease;
+    max-width: 320px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  @keyframes toastIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  .toast.success { background: #14532d; color: #86efac; border: 1px solid rgba(34,197,94,0.3); }
+  .toast.error   { background: #7f1d1d; color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+  .toast.info    { background: #1e3a5f; color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+
+  /* ── Loading overlay ── */
+  .btn-loading { position: relative; pointer-events: none; }
+  .btn-loading::after {
+    content: '';
+    width: 14px; height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: inline-block;
+    margin-left: 6px;
+  }
+
+  /* ── Tips section ── */
+  .tips-card {
+    background: linear-gradient(135deg, rgba(245,166,35,0.08), rgba(232,82,42,0.05));
+    border: 1px solid rgba(245,166,35,0.2);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-top: 24px;
+    animation: slideUp 0.4s ease 0.3s both;
+  }
+  .tips-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .tips-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tip-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    font-size: 12px; color: var(--muted2); line-height: 1.5;
+  }
+  .tip-icon { font-size: 14px; flex-shrink: 0; }
+
+  /* ── OTP Modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-overlay.hidden { display: none; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 32px 28px;
+    width: 340px;
+    max-width: 90vw;
+    text-align: center;
+    animation: slideUp 0.25s ease;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .modal-icon { font-size: 40px; margin-bottom: 12px; }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .modal-sub { font-size: 13px; color: var(--muted2); margin-bottom: 20px; line-height: 1.5; }
+  .otp-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 16px;
+    padding: 14px 14px 14px 30px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+  .otp-input:focus { border-color: var(--accent); }
+  .modal-actions { display: flex; gap: 10px; }
+  .btn-modal-cancel {
+    flex: 1; padding: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    color: var(--muted2);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-modal-cancel:hover { border-color: var(--muted); color: var(--text); }
+  .btn-modal-confirm {
+    flex: 1; padding: 11px;
+    background: linear-gradient(135deg, var(--green), #16a34a);
+    border: none; border-radius: 9px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .btn-modal-confirm:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(34,197,94,0.35); }
+  .btn-modal-confirm:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* ── Google Maps link button ── */
+  .maps-link-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    width: 100%; padding: 9px;
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.22);
+    border-radius: 9px; color: #60a5fa;
+    font-size: 13px; font-weight: 600;
+    text-decoration: none; font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s; margin-bottom: 14px;
+  }
+  .maps-link-btn:hover { background: rgba(59,130,246,0.18); }
+
+  /* ── Section divider ── */
+  .section-gap { margin-top: 32px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .grid-2    { grid-template-columns: 1fr; }
+    .tips-grid { grid-template-columns: 1fr; }
+    nav { padding: 0 16px; }
+    .main { padding: 20px 16px 60px; }
+    .nav-agent-name { display: none; }
+  }
+</style>
 </head>
 <body>
 
-<h2>🚚 Delivery Agent Dashboard</h2>
+<!-- Nav -->
+<nav>
+  <div class="nav-left">
+    <div class="nav-logo">
+      <div class="logo-icon">🛵</div>
+      Karim
+    </div>
+    <div class="agent-badge">Delivery Agent</div>
+  </div>
+  <div class="nav-right">
+    <div class="refresh-indicator">
+      <div class="refresh-dot"></div>
+      <span id="refreshLabel">Live</span>
+    </div>
+    <div class="nav-agent-name">Welcome, <strong id="agentName">Agent</strong></div>
+    <button class="logout-btn" onclick="logout()">↩ Logout</button>
+  </div>
+</nav>
 
-<button onclick="loadOrders()">📦 Load Available Orders</button>
+<!-- Main -->
+<div class="main">
 
-<div id="orders"></div>
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon orange">📦</div>
+      <div class="stat-info">
+        <div class="stat-val" id="statAvailable">—</div>
+        <div class="stat-label">Available to Pick</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue">🤝</div>
+      <div class="stat-info">
+        <div class="stat-val" id="statAssigned">—</div>
+        <div class="stat-label">My Assigned</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red">🚀</div>
+      <div class="stat-info">
+        <div class="stat-val" id="statOnRoute">—</div>
+        <div class="stat-label">Out for Delivery</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">✅</div>
+      <div class="stat-info">
+        <div class="stat-val" id="statDelivered">—</div>
+        <div class="stat-label">Delivered Today</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Two column grid -->
+  <div class="grid-2">
+
+    <!-- LEFT: Available Orders -->
+    <div>
+      <div class="section-header">
+        <div class="section-title">
+          📦 Available Orders
+          <span class="section-count active" id="availableCount">0</span>
+        </div>
+        <button class="refresh-btn" id="refreshAvailableBtn" onclick="refreshAvailable()">
+          <span class="ri">↻</span> Refresh
+        </button>
+      </div>
+      <div class="orders-list" id="availableList">
+        <!-- Skeleton -->
+        <div class="skeleton-card">
+          <div class="skeleton" style="height:14px;width:40%;margin-bottom:12px"></div>
+          <div class="skeleton" style="height:12px;width:80%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:12px;width:60%;margin-bottom:16px"></div>
+          <div class="skeleton" style="height:36px;width:100%;border-radius:9px"></div>
+        </div>
+        <div class="skeleton-card">
+          <div class="skeleton" style="height:14px;width:50%;margin-bottom:12px"></div>
+          <div class="skeleton" style="height:12px;width:75%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:12px;width:55%;margin-bottom:16px"></div>
+          <div class="skeleton" style="height:36px;width:100%;border-radius:9px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: My Orders -->
+    <div>
+      <div class="section-header">
+        <div class="section-title">
+          🛵 My Orders
+          <span class="section-count" id="myOrdersCount">0</span>
+        </div>
+        <button class="refresh-btn" id="refreshMyBtn" onclick="refreshMyOrders()">
+          <span class="ri">↻</span> Refresh
+        </button>
+      </div>
+      <div class="orders-list" id="myOrdersList">
+        <!-- Skeleton -->
+        <div class="skeleton-card">
+          <div class="skeleton" style="height:14px;width:45%;margin-bottom:12px"></div>
+          <div class="skeleton" style="height:12px;width:85%;margin-bottom:8px"></div>
+          <div class="skeleton" style="height:12px;width:65%;margin-bottom:16px"></div>
+          <div class="skeleton" style="height:36px;width:100%;border-radius:9px"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Tips for delivery agent -->
+  <div class="tips-card">
+    <div class="tips-title">💡 Quick Tips for You</div>
+    <div class="tips-grid">
+      <div class="tip-item"><span class="tip-icon">⚡</span> Accept orders fast — they go to whoever clicks first.</div>
+      <div class="tip-item"><span class="tip-icon">📍</span> Check the address carefully before starting delivery.</div>
+      <div class="tip-item"><span class="tip-icon">✅</span> Always mark "Delivered" after handing over the order.</div>
+      <div class="tip-item"><span class="tip-icon">🔄</span> Orders auto-refresh every 30 seconds. Stay ready!</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- OTP Modal -->
+<div class="modal-overlay hidden" id="otpModal">
+  <div class="modal-box">
+    <div class="modal-icon">🔐</div>
+    <div class="modal-title">Enter Delivery OTP</div>
+    <div class="modal-sub">Ask the customer for the OTP sent to their phone to confirm delivery of Order <strong id="otpOrderLabel">#—</strong></div>
+    <input
+      class="otp-input"
+      id="otpInput"
+      type="text"
+      inputmode="numeric"
+      pattern="[0-9]*"
+      maxlength="4"
+      autocomplete="one-time-code"
+      placeholder="····"
+      oninput="this.value=this.value.replace(/\D/g,'').slice(0,4)"
+    />
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closeOtpModal()">Cancel</button>
+      <button class="btn-modal-confirm" id="otpConfirmBtn" onclick="submitOtp()">✅ Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
 
 <script>
+  // ── Auth ──
+  const token = localStorage.getItem('authToken');
+  if (!token) window.location.href = 'login.html';
 
-// 🔹 Load Available (PAID) Orders
-function loadOrders(){
-    fetch('http://localhost:8080/api/delivery/available', {
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
+  const username = localStorage.getItem('username') || 'Agent';
+  document.getElementById('agentName').textContent = username;
+
+  // ── State ──
+  let availableOrders = [];
+  let myOrders = [];
+  let autoRefreshTimer = null;
+
+  // ── API helper ──
+  async function api(method, path, body = null) {
+    const opts = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token
+      }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch('/api/delivery' + path, opts);
+    if (res.status === 401) { logout(); return null; }
+    return res;
+  }
+
+  // ── Format helpers ──
+  function fmtAmount(val) {
+    return '₹' + Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+  }
+  function fmtDate(dateStr) {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleString('en-IN', {
+      day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+    });
+  }
+  function statusBadge(status) {
+    const map = {
+      PAID:             ['paid',         '💳 Paid'],
+      ASSIGNED:         ['assigned',     '🤝 Assigned'],
+      OUT_FOR_DELIVERY: ['out_delivery', '🚀 On the Way'],
+      DELIVERED:        ['delivered',    '✅ Delivered'],
+    };
+    const [cls, label] = map[status] || ['assigned', status];
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  // ── Load Available Orders ──
+  async function loadAvailableOrders() {
+    try {
+      const res = await api('GET', '/available');
+      if (!res) return;
+      availableOrders = res.ok ? await res.json() : [];
+    } catch {
+      availableOrders = [];
+    }
+    renderAvailable();
+    updateStats();
+  }
+
+  function renderAvailable() {
+    const list = document.getElementById('availableList');
+    const count = document.getElementById('availableCount');
+    count.textContent = availableOrders.length;
+
+    if (availableOrders.length === 0) {
+      list.innerHTML = `<div class="empty-state">
+        <div class="e-icon">📭</div>
+        <p>No orders available right now.<br><strong>Check back soon!</strong><br>New orders appear when customers pay.</p>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = availableOrders.map((order, i) => `
+      <div class="order-card" style="animation-delay:${i * 0.06}s">
+        <div class="order-top">
+          <div class="order-id">Order <span>#${order.id}</span></div>
+          ${statusBadge(order.status)}
+        </div>
+        <div class="order-details">
+          <div class="order-row">
+            <span class="icon">📍</span>
+            <span><strong>Deliver to:</strong> ${order.address || 'Address not set'}</span>
+          </div>
+          <div class="order-row">
+            <span class="icon">💰</span>
+            <span><strong>Amount:</strong> ${fmtAmount(order.totalAmount)}</span>
+          </div>
+          <div class="order-row">
+            <span class="icon">💳</span>
+            <span><strong>Payment:</strong> ${order.paymentType || '—'}</span>
+          </div>
+        </div>
+        <div class="order-meta">
+          <div class="order-meta-item">🕐 ${fmtDate(order.createdAt)}</div>
+          ${order.itemCount ? `<div class="order-meta-item">🛍 ${order.itemCount} item(s)</div>` : ''}
+        </div>
+        <div class="order-actions">
+          <button class="btn btn-accept" onclick="acceptOrder(${order.id}, this)">
+            🤝 Accept Order
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Load My Orders ──
+  async function loadMyOrders() {
+    try {
+      const res = await api('GET', '/my-orders');
+      if (!res) return;
+      myOrders = res.ok ? await res.json() : [];
+    } catch {
+      myOrders = [];
+    }
+    renderMyOrders();
+    updateStats();
+  }
+
+  function renderMyOrders() {
+    const list = document.getElementById('myOrdersList');
+    const count = document.getElementById('myOrdersCount');
+    count.textContent = myOrders.length;
+
+    if (myOrders.length === 0) {
+      list.innerHTML = `<div class="empty-state">
+        <div class="e-icon">🛵</div>
+        <p>No orders assigned to you yet.<br><strong>Accept an order</strong> from the left panel to get started.</p>
+      </div>`;
+      return;
+    }
+
+    list.innerHTML = myOrders.map((order, i) => {
+      const isAssigned    = order.status === 'ASSIGNED';
+      const isOutForDel   = order.status === 'OUT_FOR_DELIVERY';
+      const isDelivered   = order.status === 'DELIVERED';
+
+      return `
+      <div class="order-card" style="animation-delay:${i * 0.06}s">
+        <div class="order-top">
+          <div class="order-id">Order <span>#${order.id}</span></div>
+          ${statusBadge(order.status)}
+        </div>
+        <div class="order-details">
+          <div class="order-row">
+            <span class="icon">📍</span>
+            <span><strong>Address:</strong> ${order.address || 'Address not set'}</span>
+          </div>
+          <div class="order-row">
+            <span class="icon">💰</span>
+            <span><strong>Amount:</strong> ${fmtAmount(order.totalAmount)}</span>
+          </div>
+          <div class="order-row">
+            <span class="icon">💳</span>
+            <span><strong>Payment:</strong> ${order.paymentType || '—'}</span>
+          </div>
+        </div>
+
+        ${order.address ? `
+        <a class="maps-link-btn"
+           href="https://maps.google.com/maps?q=${encodeURIComponent(order.address)}"
+           target="_blank" rel="noopener noreferrer">
+          📍 Open in Google Maps
+        </a>
+        ` : ''}
+
+        <div class="order-meta">
+          <div class="order-meta-item">🕐 ${fmtDate(order.createdAt)}</div>
+        </div>
+        <div class="order-actions">
+          ${isAssigned ? `
+            <button class="btn btn-start" onclick="startDelivery(${order.id}, this)">
+              🚀 Start Delivery
+            </button>
+          ` : ''}
+          ${isOutForDel ? `
+            <button class="btn btn-deliver" onclick="completeDelivery(${order.id}, this)">
+              ✅ Mark as Delivered
+            </button>
+          ` : ''}
+          ${isDelivered ? `
+            <button class="btn btn-done" disabled>
+              ✅ Delivered
+            </button>
+          ` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+  }
+
+  // ── Update stats counters ──
+  function updateStats() {
+    document.getElementById('statAvailable').textContent = availableOrders.length;
+
+    const assigned    = myOrders.filter(o => o.status === 'ASSIGNED').length;
+    const onRoute     = myOrders.filter(o => o.status === 'OUT_FOR_DELIVERY').length;
+    const delivered   = myOrders.filter(o => o.status === 'DELIVERED').length;
+
+    document.getElementById('statAssigned').textContent  = assigned;
+    document.getElementById('statOnRoute').textContent   = onRoute;
+    document.getElementById('statDelivered').textContent = delivered;
+  }
+
+  // ── Accept Order ── POST /api/delivery/accept/{orderId}
+  async function acceptOrder(orderId, btn) {
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    try {
+      const res = await api('POST', `/accept/${orderId}`);
+      if (!res) return;
+      if (res.ok) {
+        showToast('success', '🤝 Order #' + orderId + ' accepted! Check My Orders.');
+        await Promise.all([loadAvailableOrders(), loadMyOrders()]);
+      } else {
+        const msg = await res.text();
+        showToast('error', '❌ ' + (msg || 'Could not accept order'));
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    } catch {
+      showToast('error', '❌ Network error. Try again.');
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+    }
+  }
+
+  // ── Start Delivery ── POST /api/delivery/start/{orderId}
+  async function startDelivery(orderId, btn) {
+    btn.classList.add('btn-loading');
+    btn.disabled = true;
+    try {
+      const res = await api('POST', `/start/${orderId}`);
+      if (!res) return;
+      if (res.ok) {
+        showToast('info', '🚀 Delivery started for Order #' + orderId);
+        await loadMyOrders();
+      } else {
+        const msg = await res.text();
+        showToast('error', '❌ ' + (msg || 'Could not start delivery'));
+        btn.classList.remove('btn-loading');
+        btn.disabled = false;
+      }
+    } catch {
+      showToast('error', '❌ Network error. Try again.');
+      btn.classList.remove('btn-loading');
+      btn.disabled = false;
+    }
+  }
+
+  // ── OTP Modal state ──
+  let pendingDeliveryOrderId = null;
+  let pendingDeliveryBtn     = null;
+
+  function completeDelivery(orderId, btn) {
+    pendingDeliveryOrderId = orderId;
+    pendingDeliveryBtn     = btn;
+    document.getElementById('otpOrderLabel').textContent = '#' + orderId;
+    document.getElementById('otpInput').value = '';
+    document.getElementById('otpModal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('otpInput').focus(), 100);
+  }
+
+  function closeOtpModal() {
+    document.getElementById('otpModal').classList.add('hidden');
+    pendingDeliveryOrderId = null;
+    pendingDeliveryBtn     = null;
+  }
+
+  async function submitOtp() {
+    const otp = document.getElementById('otpInput').value.trim();
+    if (!otp || otp.length < 4) {
+      showToast('error', '❌ OTP must be 4 digits');
+      document.getElementById('otpInput').focus();
+      return;
+    }
+
+    const confirmBtn = document.getElementById('otpConfirmBtn');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Verifying…';
+
+    if (pendingDeliveryBtn) {
+      pendingDeliveryBtn.classList.add('btn-loading');
+      pendingDeliveryBtn.disabled = true;
+    }
+
+    try {
+      const res = await api('POST', `/complete/${pendingDeliveryOrderId}`, { otp });
+      if (!res) { closeOtpModal(); return; }
+
+      if (res.ok) {
+        closeOtpModal();
+        showToast('success', '✅ Order #' + pendingDeliveryOrderId + ' marked as delivered!');
+        await loadMyOrders();
+      } else {
+        const msg = await res.text();
+        showToast('error', '❌ ' + (msg || 'Invalid OTP. Try again.'));
+        document.getElementById('otpInput').value = '';
+        document.getElementById('otpInput').focus();
+        if (pendingDeliveryBtn) {
+          pendingDeliveryBtn.classList.remove('btn-loading');
+          pendingDeliveryBtn.disabled = false;
         }
-    })
-    .then(res => res.json())
-    .then(data => {
+      }
+    } catch {
+      showToast('error', '❌ Network error. Try again.');
+      closeOtpModal();
+      if (pendingDeliveryBtn) {
+        pendingDeliveryBtn.classList.remove('btn-loading');
+        pendingDeliveryBtn.disabled = false;
+      }
+    }
 
-        let html = '';
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = '✅ Confirm';
+  }
 
-        if(data.length === 0){
-            html = "<p>No orders available</p>";
-        }
+  // Allow pressing Enter inside OTP input
+  document.getElementById('otpInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') submitOtp();
+    if (e.key === 'Escape') closeOtpModal();
+  });
 
-        data.forEach(o => {
-            html += `
-                <div style="border:1px solid black; padding:10px; margin:10px;">
-                    <p><b>Order ID:</b> ${o.id}</p>
-                    <p><b>Total Amount:</b> ₹${o.totalAmount}</p>
-                    <p><b>Address:</b> ${o.address}</p>
+  // ── Manual Refresh buttons ──
+  async function refreshAvailable() {
+    const btn = document.getElementById('refreshAvailableBtn');
+    btn.classList.add('spinning');
+    await loadAvailableOrders();
+    setTimeout(() => btn.classList.remove('spinning'), 600);
+    showToast('info', '🔄 Available orders refreshed');
+  }
+  async function refreshMyOrders() {
+    const btn = document.getElementById('refreshMyBtn');
+    btn.classList.add('spinning');
+    await loadMyOrders();
+    setTimeout(() => btn.classList.remove('spinning'), 600);
+    showToast('info', '🔄 My orders refreshed');
+  }
 
-                    <button onclick="acceptOrder(${o.id})">✅ Accept</button>
-                    <button onclick="openMap(\`${o.address}\`)">🗺️ Open Map</button>
-                </div>
-            `;
-        });
+  // ── Auto-refresh every 30 seconds ──
+  function startAutoRefresh() {
+    autoRefreshTimer = setInterval(async () => {
+      await Promise.all([loadAvailableOrders(), loadMyOrders()]);
+      const now = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('refreshLabel').textContent = 'Live · ' + now;
+    }, 30000);
+  }
 
-        document.getElementById('orders').innerHTML = html;
-    })
-    .catch(err => console.error(err));
-}
+  // ── Toast ──
+  function showToast(type, msg) {
+    const container = document.getElementById('toastContainer');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = msg;
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
 
+  // ── Logout ──
+  function logout() {
+    if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    window.location.href = 'login.html';
+  }
 
-// 🔹 Accept Order
-function acceptOrder(orderId){
-    fetch('http://localhost:8080/api/delivery/accept/' + orderId, {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + localStorage.getItem('token')
-        }
-    })
-    .then(res => res.text())
-    .then(msg => {
-        alert(msg);
-        loadOrders(); // refresh orders
-    })
-    .catch(err => console.error(err));
-}
-
-
-// 🔹 Open Google Maps
-function openMap(address){
-    const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(address);
-    window.open(url, '_blank');
-}
-
+  // ── Init ──
+  (async () => {
+    await Promise.all([loadAvailableOrders(), loadMyOrders()]);
+    startAutoRefresh();
+  })();
 </script>
-
 </body>
 </html>
