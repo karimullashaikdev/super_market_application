@@ -139,7 +139,7 @@
   async function loadCart() {
     showSkeleton();
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/cart', {
+      const res = await fetch('/api/cart', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
@@ -253,7 +253,7 @@
     document.getElementById('total-' + cartItemId).textContent = fmt(item.totalPrice);
     refreshSummary();
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/cart/update', {
+      const res = await fetch('/api/cart/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ cartItemId, quantity: newQty })
@@ -301,7 +301,7 @@
     el.style.opacity = '0';
     el.style.transform = 'translateX(20px)';
     try {
-      const res = await fetch(`https://super-market-application.onrender.com/api/cart/remove/${cartItemId}`, {
+      const res = await fetch(`/api/cart/remove/${cartItemId}`, {
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -324,7 +324,7 @@
     const clearBtn = document.getElementById('clearCartBtn');
     if (clearBtn) { clearBtn.disabled = true; clearBtn.textContent = 'Clearing...'; }
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/cart/clear', {
+      const res = await fetch('/api/cart/clear', {
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token }
       });

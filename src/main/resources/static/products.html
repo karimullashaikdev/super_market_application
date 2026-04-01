@@ -491,7 +491,7 @@
       if (searchQuery && searchQuery.trim()) params.set('search', searchQuery.trim());
 
       const res = await fetch(
-        `https://super-market-application.onrender.com/api/products?${params.toString()}`,
+        `/api/products?${params.toString()}`,
         {
           method: 'GET',
           headers: {
@@ -685,7 +685,7 @@
 
   async function loadCartCount() {
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/cart', {
+      const res = await fetch('/api/cart', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (!res.ok) return;
@@ -703,7 +703,7 @@
     btnEl.innerHTML = '⏳ Adding...';
 
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/cart/add', {
+      const res = await fetch('/api/cart/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

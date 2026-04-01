@@ -2,13 +2,12 @@ package com.karim;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
-
-import com.karim.config.AuditorConfig;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @EnableJpaAuditing
+@EnableAsync
 public class AuthServiceApplication {
 
 	public static void main(String[] args) {

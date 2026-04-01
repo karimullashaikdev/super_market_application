@@ -641,7 +641,7 @@
 
   async function fetchUsers() {
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/user', {
+      const res = await fetch('/api/user', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return []; }
@@ -748,7 +748,7 @@
   // ── Revenue ────────────────────────────────────────────────────────────────
   async function loadRevenue() {
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/admin/revenue', {
+      const res = await fetch('/api/admin/revenue', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
@@ -771,7 +771,7 @@
 
   async function fetchOrders() {
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/order/all', {
+      const res = await fetch('/api/order/all', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return null; }
@@ -910,7 +910,7 @@
 
   async function fetchProducts() {
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/products?page=0&size=1000', {
+      const res = await fetch('/api/products?page=0&size=1000', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return null; }
@@ -1140,8 +1140,8 @@
 	
 
     const url    = isEdit
-      ? `https://super-market-application.onrender.com/api/products/${editingProductId}`
-      : 'https://super-market-application.onrender.com/api/products';
+      ? `/api/products/${editingProductId}`
+      : '/api/products';
     const method = isEdit ? 'PUT' : 'POST';
 
     btn.disabled = true;
@@ -1228,7 +1228,7 @@
     btn.disabled = true;
     btn.textContent = 'Deleting...';
     try {
-      const res = await fetch(`https://super-market-application.onrender.com/api/products/${deletingProductId}`, {
+      const res = await fetch(`/api/products/${deletingProductId}`, {
         method: 'DELETE',
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -1505,7 +1505,7 @@
 
   async function loadItemSales() {
     try {
-      const res = await fetch('https://super-market-application.onrender.com/api/admin/item-sales', {
+      const res = await fetch('/api/admin/item-sales', {
         headers: { 'Authorization': 'Bearer ' + token }
       });
       if (!res.ok) throw new Error('Status ' + res.status);

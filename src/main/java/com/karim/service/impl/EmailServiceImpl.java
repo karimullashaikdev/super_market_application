@@ -116,6 +116,7 @@ import java.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.client.RestTemplate;
 import com.karim.service.EmailService;
 
@@ -217,6 +218,7 @@ public class EmailServiceImpl implements EmailService {
     // WELCOME EMAIL
     // =================================
     @Override
+    @Async
     public void sendWelcomeEmail(String to, String username) {
         String subject = "Welcome to Karim Mart!";
         String body = "Hello " + username + ",\n\n"
