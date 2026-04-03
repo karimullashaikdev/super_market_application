@@ -573,10 +573,20 @@
   // 🛵 LIVE LOCATION TRACKING — fully automatic
   // Auto-starts when agent clicks "Start Delivery"
   // Auto-stops when delivery is confirmed with OTP
+  //
+  // FIX: Uses watchPosition (continuous GPS stream) instead of
+  // setInterval+getCurrentPosition so tracking survives tab switches.
+  // A visibilitychange listener immediately re-pushes the last known
+  // position when the agent returns to this tab from Google Maps etc.
+  // A heartbeat also re-sends last coords every 8s as a safety net.
   // ════════════════════════════════════════════════════════
 
-  let locationInterval = null;
-  let activeTrackOrder = null;
+  let activeTrackOrder   = null;
+  let geoWatchId         = null;   // watchPosition handle
+  let heartbeatInterval  = null;   // fallback heartbeat
+  let lastKnownLat       = null;   // last successfully received coords
+  let lastKnownLng       = null;
+  let visibilityHandler  = null;   // stored so we can remove it later
 
   // Called automatically after startDelivery() succeeds
   function startLocationSharing(orderId) {
@@ -584,19 +594,75 @@
       showToast('error', '❌ GPS not supported — customer cannot track you');
       return;
     }
+
+    // Clean up any previous session first
+    _clearLocationSession();
+
     activeTrackOrder = orderId;
     document.getElementById('liveTrackBar').classList.add('visible');
     setTrackState('requesting', '⏳ Starting location sharing…', 'Order #' + orderId);
 
-    pushLocation();
-    locationInterval = setInterval(pushLocation, 5000);
+    // ── 1. watchPosition: continuous GPS stream ──
+    // Unlike setInterval+getCurrentPosition, watchPosition is a persistent
+    // stream that the browser keeps alive even when the tab is backgrounded.
+    geoWatchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        lastKnownLat = pos.coords.latitude;
+        lastKnownLng = pos.coords.longitude;
+        _sendLocation(lastKnownLat, lastKnownLng);
+      },
+      (err) => {
+        const msgs = { 1: 'Location permission denied', 2: 'Location unavailable', 3: 'GPS timed out' };
+        setTrackState('error', '❌ GPS unavailable', msgs[err.code] || 'Check browser permissions');
+        // Don't toast on every watch error — only log
+        console.warn('[GPS]', msgs[err.code] || err.message);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
+    );
+
+    // ── 2. Heartbeat: re-send last known coords every 8s ──
+    // Acts as a safety net in case watchPosition fires less often when
+    // the tab is backgrounded on some mobile browsers.
+    heartbeatInterval = setInterval(() => {
+      if (lastKnownLat !== null && lastKnownLng !== null) {
+        _sendLocation(lastKnownLat, lastKnownLng);
+      }
+    }, 8000);
+
+    // ── 3. visibilitychange: agent comes back from Google Maps / another tab ──
+    // Immediately push last known position so the customer marker doesn't
+    // jump back to the start position during the gap.
+    visibilityHandler = () => {
+      if (document.visibilityState === 'visible' && activeTrackOrder) {
+        setTrackState('requesting', '🔄 Resuming location…', 'Order #' + activeTrackOrder);
+
+        if (lastKnownLat !== null && lastKnownLng !== null) {
+          // Push the cached position right away while GPS warms up
+          _sendLocation(lastKnownLat, lastKnownLng);
+        }
+
+        // Re-start watchPosition if it was killed by the browser
+        if (geoWatchId === null) {
+          geoWatchId = navigator.geolocation.watchPosition(
+            (pos) => {
+              lastKnownLat = pos.coords.latitude;
+              lastKnownLng = pos.coords.longitude;
+              _sendLocation(lastKnownLat, lastKnownLng);
+            },
+            (err) => { console.warn('[GPS resume]', err.message); },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 3000 }
+          );
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', visibilityHandler);
   }
 
   // Called automatically after completeDelivery() OTP confirmed
   async function stopLocationSharing() {
-    if (locationInterval) { clearInterval(locationInterval); locationInterval = null; }
+    _clearLocationSession();
 
-    // Notify backend+customer that sharing has stopped
+    // Notify backend + customer that sharing has stopped
     if (activeTrackOrder) {
       try {
         await fetch('/api/delivery/location/stop', {
@@ -614,38 +680,43 @@
     }, 3000);
   }
 
-  async function pushLocation() {
+  // ── Internal: tear down all GPS resources ──
+  function _clearLocationSession() {
+    if (geoWatchId !== null) {
+      navigator.geolocation.clearWatch(geoWatchId);
+      geoWatchId = null;
+    }
+    if (heartbeatInterval !== null) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+    if (visibilityHandler !== null) {
+      document.removeEventListener('visibilitychange', visibilityHandler);
+      visibilityHandler = null;
+    }
+    lastKnownLat = null;
+    lastKnownLng = null;
+  }
+
+  // ── Internal: send a single location update to the backend ──
+  async function _sendLocation(lat, lng) {
     if (!activeTrackOrder) return;
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const res = await fetch('/api/delivery/location', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
-            body: JSON.stringify({
-              orderId:   activeTrackOrder,
-              latitude:  pos.coords.latitude,
-              longitude: pos.coords.longitude
-            })
-          });
-          if (res.ok) {
-            setTrackState('live', '🟢 Sharing live location',
-              'Last update: ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            );
-          } else if (res.status === 401) {
-            stopLocationSharing(); logout();
-          }
-        } catch (_) {
-          setTrackState('error', '⚠️ Network error', 'Retrying in 5s…');
-        }
-      },
-      (err) => {
-        const msgs = { 1: 'Location permission denied', 2: 'Location unavailable', 3: 'GPS timed out' };
-        showToast('error', '❌ ' + (msgs[err.code] || 'GPS error'));
-        setTrackState('error', '❌ GPS unavailable', msgs[err.code] || 'Check browser permissions');
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-    );
+    try {
+      const res = await fetch('/api/delivery/location', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ orderId: activeTrackOrder, latitude: lat, longitude: lng })
+      });
+      if (res.ok) {
+        setTrackState('live', '🟢 Sharing live location',
+          'Last update: ' + new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        );
+      } else if (res.status === 401) {
+        stopLocationSharing(); logout();
+      }
+    } catch (_) {
+      setTrackState('error', '⚠️ Network error', 'Retrying…');
+    }
   }
 
   function setTrackState(state, title, sub) {

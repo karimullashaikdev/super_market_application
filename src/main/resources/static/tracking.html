@@ -118,6 +118,10 @@
   let leafletMap     = null;
   let homeMarker     = null;   // 🏠 orange house — delivery address
   let bikeMarker     = null;   // 🛵 blue bike   — agent live location
+  let lastAgentLat   = null;   // last received agent coords (never cleared on stale)
+  let lastAgentLng   = null;
+  let staleTimer     = null;   // fires if no location update in 15s → show warning
+  const STALE_MS     = 15000; // 15 seconds without update = "signal lost"
 
   if (!orderId) {
     showError('No order ID found in the link. Please use the link from your email.');
@@ -160,7 +164,10 @@
     if (event.type === 'LOCATION') {
       orderData.agentLatitude  = event.latitude;
       orderData.agentLongitude = event.longitude;
+      lastAgentLat = event.latitude;
+      lastAgentLng = event.longitude;
       moveBikeMarker(event.latitude, event.longitude);
+      _resetStaleTimer();   // got a fresh update — reset the "signal lost" countdown
     } else if (event.type === 'LOCATION_STOP') {
       // Agent stopped sharing — remove bike marker
       orderData.agentLatitude  = null;
@@ -317,16 +324,39 @@
     }
     const hdr = document.querySelector('.map-card-header span:last-child');
     if (hdr) hdr.textContent = '🟢 Agent location live';
+    _resetStaleTimer();  // reset countdown on every fresh location update
   }
 
   // Called when agent stops sharing — remove bike marker, reset header
   function clearBikeMarker() {
+    _cancelStaleTimer();
     if (bikeMarker && leafletMap) {
       leafletMap.removeLayer(bikeMarker);
       bikeMarker = null;
     }
+    // NOTE: we do NOT clear lastAgentLat/Lng here — we keep the last position
+    // so the marker doesn't jump on a brief LOCATION_STOP event
     const hdr = document.querySelector('.map-card-header span:last-child');
     if (hdr) hdr.textContent = '⏸ Agent paused location sharing';
+  }
+
+  // ════════════════════════════════════════
+  // Stale location detection
+  // ════════════════════════════════════════
+  // If no location update arrives within STALE_MS, show a "signal lost" warning
+  // but KEEP the marker at the last known position — never reset to origin.
+  function _resetStaleTimer() {
+    _cancelStaleTimer();
+    staleTimer = setTimeout(() => {
+      // No update for STALE_MS — agent likely switched apps/tabs
+      const hdr = document.querySelector('.map-card-header span:last-child');
+      if (hdr) hdr.textContent = '⚠️ Signal lost — last known position shown';
+      // Marker stays exactly where it was; do NOT move it
+    }, STALE_MS);
+  }
+
+  function _cancelStaleTimer() {
+    if (staleTimer) { clearTimeout(staleTimer); staleTimer = null; }
   }
 
   // ════════════════════════════════════════
@@ -431,8 +461,10 @@
     if (usingFallback) { homeLat = DEFAULT_LAT; homeLng = DEFAULT_LNG; }
 
     // ── Agent's current location ──
-    const agentLat = parseFloat(data.agentLatitude)  || null;
-    const agentLng = parseFloat(data.agentLongitude) || null;
+    // Prefer the in-memory cached value (most recent from WebSocket) over
+    // the API snapshot, so a re-render after a tab switch never jumps back.
+    const agentLat = lastAgentLat  ?? (parseFloat(data.agentLatitude)  || null);
+    const agentLng = lastAgentLng  ?? (parseFloat(data.agentLongitude) || null);
     const hasAgent = !!(agentLat && agentLng);
 
     // ── Centre map: if agent known, fit both; else centre on home ──
@@ -452,6 +484,7 @@
       // 🛵 Bike marker — agent live location
       bikeMarker = L.marker([agentLat, agentLng], { icon: bikeIcon() }).addTo(leafletMap);
       bikeMarker.bindPopup('<b>🛵 Delivery Agent</b><br>On the way to you!', { closeButton: false }).openPopup();
+      _resetStaleTimer();  // start watching for stale updates
 
       // If agent and home are same/very close (within ~50m), just setView at zoom 17
       // instead of fitBounds which would zoom out absurdly for identical coordinates
