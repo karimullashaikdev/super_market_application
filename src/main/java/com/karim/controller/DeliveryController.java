@@ -118,7 +118,7 @@ public class DeliveryController {
                 userRepository.findById(order.getDeliveryAgentId()).ifPresent(agent -> {
                     response.put("agentId",     "AGT-" + agent.getId());
                     response.put("agentName",   agent.getName());
-                    response.put("agentMobile", agent.getMobileNumber());
+                    response.put("agentMobile", agent.getMobile());
                 });
             }
 

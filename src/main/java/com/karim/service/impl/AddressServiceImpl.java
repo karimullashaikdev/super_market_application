@@ -55,6 +55,8 @@ public class AddressServiceImpl implements AddressService {
                 .pin(dto.getPin())
                 .landmark(dto.getLandmark())
                 .isDefault(Boolean.TRUE.equals(dto.getIsDefault()))
+                .latitude(dto.getLatitude())
+                .longitude(dto.getLongitude())
                 .build();
 
         return toDto(addressRepository.save(address));
@@ -80,6 +82,8 @@ public class AddressServiceImpl implements AddressService {
         address.setPin(dto.getPin());
         address.setLandmark(dto.getLandmark());
         address.setIsDefault(Boolean.TRUE.equals(dto.getIsDefault()));
+        address.setLatitude(dto.getLatitude());
+        address.setLongitude(dto.getLongitude());
 
         return toDto(addressRepository.save(address));
     }
@@ -115,6 +119,8 @@ public class AddressServiceImpl implements AddressService {
                 .isDefault(a.getIsDefault())
                 .formattedAddress(a.toFormattedString())
                 .createdAt(a.getCreatedAt())
+                .latitude(a.getLatitude())
+                .longitude(a.getLongitude())
                 .build();
     }
 }

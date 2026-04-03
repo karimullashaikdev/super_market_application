@@ -78,7 +78,7 @@ public class DeliveryServiceImpl implements DeliveryService {
                 order.getAddress(),
                 "AGT-" + agent.getId(),
                 agent.getName(),
-                agent.getMobileNumber() != null ? agent.getMobileNumber() : "—",
+                agent.getMobile() != null ? agent.getMobile() : "—",
                 otp
         );
 
@@ -175,7 +175,7 @@ public class DeliveryServiceImpl implements DeliveryService {
                 order.getStatus().name(),
                 agent != null ? "AGT-" + agent.getId() : null,
                 agent != null ? agent.getName() : null,
-                agent != null ? agent.getMobileNumber() : null
+                agent != null ? agent.getMobile() : null
         );
 
         // Dashboard — all agents see the update immediately

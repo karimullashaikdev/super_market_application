@@ -27,10 +27,8 @@ public class User {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // ✅ NEW FIELD — add this to your existing User entity
-    // Also update your registration/profile frontend to send this field
-    @Column(name = "mobile_number", length = 15)
-    private String mobileNumber;
+    @Column(unique = true)
+    private String mobile;
 
     @PrePersist
     public void onCreate() {

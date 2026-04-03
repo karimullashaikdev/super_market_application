@@ -233,6 +233,11 @@
     <label>Email</label>
     <input type="email" id="email" placeholder="Enter your email" />
   </div>
+  
+  <div class="field">
+      <label>Mobile Number</label>
+      <input type="tel" id="mobile" placeholder="Enter your 10-digit mobile number" maxlength="10" />
+    </div>
 
   <div class="field">
     <label>Password</label>
@@ -242,10 +247,6 @@
   <div class="field">
     <label>Confirm Password</label>
     <input type="password" id="confirmPassword" placeholder="Repeat your password" />
-  </div>
-
-  <div class="field">
-
   </div>
 
   <button class="btn" id="registerBtn" onclick="handleRegister()">
@@ -265,6 +266,7 @@
     const email           = document.getElementById('email').value.trim();
     const password        = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;
+    const mobile          = document.getElementById('mobile').value.trim();
     const btn             = document.getElementById('registerBtn');
 
     document.getElementById('errorMsg').classList.remove('show');
@@ -280,6 +282,9 @@
     if (password !== confirmPassword) {
       showError('Passwords do not match.'); return;
     }
+    if (!mobile || !/^[6-9]\d{9}$/.test(mobile)) {
+      showError('Please enter a valid 10-digit Indian mobile number.'); return;
+    }
 
     btn.classList.add('loading');
     btn.disabled = true;
@@ -292,6 +297,7 @@
           name,
           email,
           password,
+          mobile,
           role: 'USER'
         })
       });

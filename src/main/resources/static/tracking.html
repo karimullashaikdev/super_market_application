@@ -346,23 +346,28 @@
   }
 
   async function geocodeAddress(data) {
-    const city  = data.addressCity  || '';
-    const state = data.addressState || '';
-    const pin   = data.addressPin   || '';
-    const line2 = data.addressLine2 || '';
+    // Use structured fields from your API (Address entity → Order → TrackResponse)
+    const line2 = (data.addressLine2 || '').trim();  // "Near SR Nagar Police station, SR Nagar"
+    const city  = (data.addressCity  || '').trim();  // "Hyderabad"
+    const state = (data.addressState || '').trim();  // "Telangana"
+    const pin   = (data.addressPin   || '').trim();  // "500038"
 
+    // Strategy 1: locality + city + PIN (most precise)
     if (line2 && city && pin) {
-      const r = await tryGeocode(`${line2}, ${city}, ${state}, ${pin}, India`);
+      const r = await tryGeocode(`${line2}, ${city}, ${state} ${pin}, India`);
       if (r) return r;
     }
+    // Strategy 2: PIN + city
     if (pin && city) {
-      const r = await tryGeocode(`${pin}, ${city}, India`);
+      const r = await tryGeocode(`${pin} ${city}, ${state}, India`);
       if (r) return r;
     }
+    // Strategy 3: PIN alone (always resolves to correct area)
     if (pin) {
       const r = await tryGeocode(`${pin}, India`);
       if (r) return r;
     }
+    // Strategy 4: city + state
     if (city) {
       const r = await tryGeocode(`${city}, ${state}, India`);
       if (r) return r;
@@ -410,13 +415,18 @@
     }
 
     // ── Resolve delivery address coordinates ──
-    let homeLat = parseFloat(data.latitude)  || null;
-    let homeLng = parseFloat(data.longitude) || null;
+    // Priority 1: exact GPS pin saved when customer pinned location on map (Address entity lat/lng)
+    // Priority 2: geocode from structured address fields (PIN + city)
+    // Priority 3: Hyderabad default
+    let homeLat = (data.latitude  != null && data.latitude  !== undefined) ? parseFloat(data.latitude)  : null;
+    let homeLng = (data.longitude != null && data.longitude !== undefined) ? parseFloat(data.longitude) : null;
 
     if (!homeLat || !homeLng) {
-      const r = await geocodeAddress(data);
-      if (r) { homeLat = r.lat; homeLng = r.lng; }
+      // No GPS pin — geocode using structured address fields from the API
+      const geo = await geocodeAddress(data);
+      if (geo) { homeLat = geo.lat; homeLng = geo.lng; }
     }
+
     const usingFallback = !homeLat || !homeLng;
     if (usingFallback) { homeLat = DEFAULT_LAT; homeLng = DEFAULT_LNG; }
 

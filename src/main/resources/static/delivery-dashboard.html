@@ -290,7 +290,11 @@
 
   // ── API helper ──
   async function api(method, path, body = null) {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token } };
+    const opts = {
+      method,
+      cache: 'no-store',   // never serve stale cached responses
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token }
+    };
     if (body) opts.body = JSON.stringify(body);
     const res = await fetch('/api/delivery' + path, opts);
     if (res.status === 401) { logout(); return null; }
@@ -413,7 +417,7 @@
           <div class="order-row"><span class="icon">💰</span><span><strong>Amount:</strong> ${fmtAmount(order.totalAmount)}</span></div>
           <div class="order-row"><span class="icon">💳</span><span><strong>Payment:</strong> ${order.paymentType || '—'}</span></div>
         </div>
-        ${order.address ? `<a class="maps-link-btn" href="https://maps.google.com/maps?q=${encodeURIComponent(order.address)}" target="_blank" rel="noopener">📍 Open in Google Maps</a>` : ''}
+        ${order.address ? `<button class="maps-link-btn" onclick="openMapsWithLocation('${order.address.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', this, ${order.latitude != null ? order.latitude : 'null'}, ${order.longitude != null ? order.longitude : 'null'})">📍 Open in Google Maps</button>` : ''}
         <div class="order-meta"><span>🕐 ${fmtDate(order.createdAt)}</span></div>
         <div class="order-actions">
           ${isAssigned  ? `<button class="btn btn-start"   onclick="startDelivery(${order.id}, this)">🚀 Start Delivery</button>` : ''}
@@ -490,23 +494,33 @@
     confirmBtn.disabled = true; confirmBtn.textContent = 'Verifying…';
     if (pendingDeliveryBtn) { pendingDeliveryBtn.classList.add('btn-loading'); pendingDeliveryBtn.disabled = true; }
     try {
-      const res = await api('POST', `/complete/${pendingDeliveryOrderId}`, { otp });
-      if (!res) { closeOtpModal(); return; }
+      // Backend uses @RequestBody Map<String,String> — send otp in JSON body only
+      const res = await fetch(
+        `/api/delivery/complete/${pendingDeliveryOrderId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+          body: JSON.stringify({ otp })
+        }
+      );
+      if (res.status === 401) { logout(); return; }
       if (res.ok) {
         closeOtpModal();
         showToast('success', '✅ Order #' + pendingDeliveryOrderId + ' delivered!');
         stopLocationSharing();   // ✅ stop GPS broadcast
-        hideTrackingBar();       // ✅ hide the tracking bar
         await loadMyOrders();
       } else {
-        showToast('error', '❌ ' + (await res.text() || 'Invalid OTP'));
+        // Safely read error body (400/422) — this is NOT a network error
+        let errMsg = 'Invalid OTP';
+        try { const b = await res.text(); if (b) errMsg = b; } catch (_) {}
+        showToast('error', '❌ ' + errMsg);
         document.getElementById('otpInput').value = '';
         document.getElementById('otpInput').focus();
         if (pendingDeliveryBtn) { pendingDeliveryBtn.classList.remove('btn-loading'); pendingDeliveryBtn.disabled = false; }
       }
-    } catch {
-      showToast('error', '❌ Network error.');
-      closeOtpModal();
+    } catch (networkErr) {
+      // Only reaches here on actual network failure (offline / CORS)
+      showToast('error', '❌ Network error — check your connection and try again.');
       if (pendingDeliveryBtn) { pendingDeliveryBtn.classList.remove('btn-loading'); pendingDeliveryBtn.disabled = false; }
     }
     confirmBtn.disabled = false; confirmBtn.textContent = '✅ Confirm';
@@ -637,6 +651,45 @@
     document.getElementById('trackStatusSub').textContent   = sub;
   }
 
+
+  // ── Open Google Maps with accurate agent location as origin ──
+  function openMapsWithLocation(address, btn, destLat, destLng) {
+    const originalHTML = btn.innerHTML;
+    btn.innerHTML = '⏳ Getting your location…';
+    btn.style.pointerEvents = 'none';
+
+    // Use exact GPS pin from Address entity if available, else fall back to address text
+    const destination = (destLat != null && destLng != null)
+      ? encodeURIComponent(destLat + ',' + destLng)
+      : encodeURIComponent(address);
+
+    function openMap(origin) {
+      const url = 'https://www.google.com/maps/dir/?api=1'
+        + (origin ? '&origin=' + encodeURIComponent(origin) : '')
+        + '&destination=' + destination
+        + '&travelmode=driving';
+      window.open(url, '_blank');
+      btn.innerHTML = originalHTML;
+      btn.style.pointerEvents = '';
+    }
+
+    if (!navigator.geolocation) {
+      openMap(null);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        // origin = agent live GPS, destination = customer exact pinned location
+        openMap(pos.coords.latitude + ',' + pos.coords.longitude);
+      },
+      (_err) => {
+        showToast('info', '📍 Location unavailable — opening destination only');
+        openMap(null);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  }
   // ── Init ──
   (async () => {
     await Promise.all([loadAvailableOrders(), loadMyOrders()]);
