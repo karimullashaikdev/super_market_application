@@ -124,6 +124,7 @@
 
   .maps-link-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 9px; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.22); border-radius: 9px; color: #60a5fa; font-size: 13px; font-weight: 600; text-decoration: none; font-family: 'DM Sans', sans-serif; transition: background 0.2s; margin-bottom: 14px; }
   .maps-link-btn:hover { background: rgba(59,130,246,0.18); }
+  .maps-link-disabled { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 9px; background: rgba(107,114,128,0.08); border: 1px dashed rgba(107,114,128,0.25); border-radius: 9px; color: var(--muted); font-size: 12px; font-weight: 600; font-family: 'DM Sans', sans-serif; margin-bottom: 14px; cursor: not-allowed; user-select: none; letter-spacing: 0.01em; }
 
   .toast-container { position: fixed; bottom: 28px; right: 28px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; }
   .toast { padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; animation: toastIn 0.3s ease; max-width: 320px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
@@ -417,7 +418,10 @@
           <div class="order-row"><span class="icon">💰</span><span><strong>Amount:</strong> ${fmtAmount(order.totalAmount)}</span></div>
           <div class="order-row"><span class="icon">💳</span><span><strong>Payment:</strong> ${order.paymentType || '—'}</span></div>
         </div>
-        ${order.address ? `<button class="maps-link-btn" onclick="openMapsWithLocation('${order.address.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', this, ${order.latitude != null ? order.latitude : 'null'}, ${order.longitude != null ? order.longitude : 'null'})">📍 Open in Google Maps</button>` : ''}
+        ${order.address ? (isDelivered
+          ? `<div class="maps-link-btn maps-link-disabled" title="Location hidden for customer privacy">🔒 Map Unavailable — Customer Privacy Protected</div>`
+          : `<button class="maps-link-btn" onclick="openMapsWithLocation('${order.address.replace(/'/g, "\\'").replace(/"/g, '&quot;')}', this, ${order.latitude != null ? order.latitude : 'null'}, ${order.longitude != null ? order.longitude : 'null'})">📍 Open in Google Maps</button>`)
+        : ''}
         <div class="order-meta"><span>🕐 ${fmtDate(order.createdAt)}</span></div>
         <div class="order-actions">
           ${isAssigned  ? `<button class="btn btn-start"   onclick="startDelivery(${order.id}, this)">🚀 Start Delivery</button>` : ''}
