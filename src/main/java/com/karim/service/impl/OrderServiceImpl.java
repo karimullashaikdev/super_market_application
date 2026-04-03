@@ -26,203 +26,140 @@ import com.karim.service.OrderService;
 @Service
 public class OrderServiceImpl implements OrderService {
 
-    @Autowired
-    private CartItemRepository cartRepo;
+	@Autowired
+	private CartItemRepository cartRepo;
 
-    @Autowired
-    private OrderRepository orderRepo;
+	@Autowired
+	private OrderRepository orderRepo;
 
-    @Autowired
-    private ProductRepository productRepo;
-    
-    @Autowired
-    private AddressRepository addressRepo;
+	@Autowired
+	private ProductRepository productRepo;
 
-    // ===============================
-    // CHECKOUT
-    // ===============================
-//    @Override
-//    @Transactional
-//    public Order checkout(Long userId, CheckoutRequest request) {
-//
-//        List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
-//
-//        if (cartItems.isEmpty()) {
-//            throw new CartEmptyException("Cart is empty");
-//        }
-//
-//        Order order = new Order();
-//        order.setUserId(userId);
-//
-//        // ✅ NEW STATUS FLOW
-//        order.setStatus(OrderStatus.CREATED);
-//
-//        // ✅ PAYMENT
-//        order.setPaymentType(request.getPaymentType());
-//        order.setPaymentStatus(PaymentStatus.PENDING);
-//
-//        // ✅ ADDRESS (VERY IMPORTANT for delivery)
-//        order.setAddress(request.getAddress());
-//
-//        // ===============================
-//        // CREATE ORDER ITEMS
-//        // ===============================
-//        List<OrderItem> orderItems = cartItems.stream().map(cart -> {
-//
-//            Product product = productRepo.findById(cart.getProductId())
-//                    .orElseThrow(() -> new RuntimeException("Product not found"));
-//
-//            // ✅ STOCK VALIDATION
-//            if (product.getStock() < cart.getQuantity()) {
-//                throw new RuntimeException("Insufficient stock for product: " + product.getName());
-//            }
-//
-//            // ✅ REDUCE STOCK
-//            product.setStock(product.getStock() - cart.getQuantity());
-//
-//            OrderItem item = new OrderItem();
-//            item.setProductId(product.getId());
-//            item.setProductName(product.getName());
-//            item.setPrice(product.getPrice());
-//            item.setQuantity(cart.getQuantity());
-//            item.setOrder(order);
-//
-//            return item;
-//
-//        }).toList();
-//
-//        double total = orderItems.stream()
-//                .mapToDouble(i -> i.getPrice() * i.getQuantity())
-//                .sum();
-//
-//        order.setItems(orderItems);
-//        order.setTotalAmount(total);
-//
-//        Order savedOrder = orderRepo.save(order);
-//
-//        // ✅ CLEAR CART
-//        cartRepo.deleteByUserId(userId);
-//
-//        return savedOrder;
-//    }
+	@Autowired
+	private AddressRepository addressRepo;
 
-    // ===============================
-    // PAYMENT SUCCESS (IMPORTANT)
-    // ===============================
-    @Override
-    public Order markOrderAsPaid(Long orderId) {
+	// ===============================
+	// PAYMENT SUCCESS (IMPORTANT)
+	// ===============================
+	@Override
+	public Order markOrderAsPaid(Long orderId) {
 
-        Order order = orderRepo.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+		Order order = orderRepo.findById(orderId).orElseThrow(() -> new RuntimeException("Order not found"));
 
-        // ✅ UPDATE STATUS AFTER PAYMENT
-        order.setStatus(OrderStatus.PAID);
-        order.setPaymentStatus(PaymentStatus.SUCCESS);
+		// ✅ UPDATE STATUS AFTER PAYMENT
+		order.setStatus(OrderStatus.PAID);
+		order.setPaymentStatus(PaymentStatus.SUCCESS);
 
-        return orderRepo.save(order);
-    }
+		return orderRepo.save(order);
+	}
 
-    // ===============================
-    // MY ORDERS
-    // ===============================
-    @Override
-    public List<Order> getMyOrders(Long userId) {
-        return orderRepo.findByUserIdAndDeletedFalse(userId);
-    }
+	// ===============================
+	// MY ORDERS
+	// ===============================
+	@Override
+	public List<Order> getMyOrders(Long userId) {
+		return orderRepo.findByUserIdAndDeletedFalse(userId);
+	}
 
-    // ===============================
-    // VIEW SINGLE ORDER
-    // ===============================
-    @Override
-    public Order getOrder(Long orderId, Long userId) {
+	// ===============================
+	// VIEW SINGLE ORDER
+	// ===============================
+	@Override
+	public Order getOrder(Long orderId, Long userId) {
 
-        Order order = orderRepo.findByIdAndDeletedFalse(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+		Order order = orderRepo.findByIdAndDeletedFalse(orderId)
+				.orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (!order.getUserId().equals(userId)) {
-            throw new UnauthorizedException("Access denied");
-        }
+		if (!order.getUserId().equals(userId)) {
+			throw new UnauthorizedException("Access denied");
+		}
 
-        return order;
-    }
+		return order;
+	}
 
-    // ===============================
-    // ADMIN - ALL ORDERS
-    // ===============================
-    @Override
-    public List<OrderItemDetailsDTO> getAllOrders() {
-        return orderRepo.fetchOrderItemDetails();
-    }
+	// ===============================
+	// ADMIN - ALL ORDERS
+	// ===============================
+	@Override
+	public List<OrderItemDetailsDTO> getAllOrders() {
+		return orderRepo.fetchOrderItemDetails();
+	}
 
-    @Override
-    @Transactional
-    public Order checkout(Long userId, CheckoutRequest request) {
+	@Override
+	@Transactional
+	public Order checkout(Long userId, CheckoutRequest request) {
 
-        List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
+		List<CartItem> cartItems = cartRepo.findByUserIdAndDeletedFalse(userId);
 
-        if (cartItems.isEmpty()) {
-            throw new CartEmptyException("Cart is empty");
-        }
+		if (cartItems.isEmpty()) {
+			throw new CartEmptyException("Cart is empty");
+		}
 
-        // ✅ Fetch address entity and validate ownership
-        Address deliveryAddress = addressRepo
-                .findByIdAndUserId(request.getAddressId(), userId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Address is required. Please select a delivery address."));
+		// ✅ Fetch address entity and validate ownership
+		Address deliveryAddress = addressRepo.findByIdAndUserId(request.getAddressId(), userId)
+				.orElseThrow(() -> new RuntimeException("Address is required. Please select a delivery address."));
 
-        Order order = new Order();
-        order.setUserId(userId);
+		Order order = new Order();
+		order.setUserId(userId);
 
-        // ✅ STATUS FLOW
-        order.setStatus(OrderStatus.CREATED);
+		// ✅ STATUS FLOW
+		order.setStatus(OrderStatus.CREATED);
 
-        // ✅ PAYMENT
-        order.setPaymentType(request.getPaymentType());
-        order.setPaymentStatus(PaymentStatus.PENDING);
+		// ✅ PAYMENT
+		order.setPaymentType(request.getPaymentType());
+		order.setPaymentStatus(PaymentStatus.PENDING);
 
-        // ✅ ADDRESS — formatted string from the entity
-        order.setAddress(deliveryAddress.toFormattedString());
+		// ✅ ADDRESS — formatted string for display
+		order.setAddress(deliveryAddress.toFormattedString());
 
-        // ===============================
-        // CREATE ORDER ITEMS
-        // ===============================
-        List<OrderItem> orderItems = cartItems.stream().map(cart -> {
+		// ✅ Structured address fields — used by tracking page for accurate geocoding
+		order.setAddressLine2(deliveryAddress.getLine2()); // locality e.g. "Raj Bhavan Road"
+		order.setAddressCity(deliveryAddress.getCity()); // e.g. "Hyderabad"
+		order.setAddressState(deliveryAddress.getState()); // e.g. "Telangana"
+		order.setAddressPin(deliveryAddress.getPin()); // e.g. "500038"
 
-            Product product = productRepo.findById(cart.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
+		// ✅ GPS coordinates — exact pin if customer dropped one on the map
+		order.setLatitude(deliveryAddress.getLatitude());
+		order.setLongitude(deliveryAddress.getLongitude());
 
-            // ✅ STOCK VALIDATION
-            if (product.getStock() < cart.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName());
-            }
+		// ===============================
+		// CREATE ORDER ITEMS
+		// ===============================
+		List<OrderItem> orderItems = cartItems.stream().map(cart -> {
 
-            // ✅ REDUCE STOCK
-            product.setStock(product.getStock() - cart.getQuantity());
-            productRepo.save(product);
+			Product product = productRepo.findById(cart.getProductId())
+					.orElseThrow(() -> new RuntimeException("Product not found"));
 
-            OrderItem item = new OrderItem();
-            item.setProductId(product.getId());
-            item.setProductName(product.getName());
-            item.setPrice(product.getPrice());
-            item.setQuantity(cart.getQuantity());
-            item.setOrder(order);
+			// ✅ STOCK VALIDATION
+			if (product.getStock() < cart.getQuantity()) {
+				throw new RuntimeException("Insufficient stock for product: " + product.getName());
+			}
 
-            return item;
+			// ✅ REDUCE STOCK
+			product.setStock(product.getStock() - cart.getQuantity());
+			productRepo.save(product);
 
-        }).toList();
+			OrderItem item = new OrderItem();
+			item.setProductId(product.getId());
+			item.setProductName(product.getName());
+			item.setPrice(product.getPrice());
+			item.setQuantity(cart.getQuantity());
+			item.setOrder(order);
 
-        double total = orderItems.stream()
-                .mapToDouble(i -> i.getPrice() * i.getQuantity())
-                .sum();
+			return item;
 
-        order.setItems(orderItems);
-        order.setTotalAmount(total);
+		}).toList();
 
-        Order savedOrder = orderRepo.save(order);
+		double total = orderItems.stream().mapToDouble(i -> i.getPrice() * i.getQuantity()).sum();
 
-        // ✅ CLEAR CART
-        cartRepo.deleteByUserId(userId);
+		order.setItems(orderItems);
+		order.setTotalAmount(total);
 
-        return savedOrder;
-    }
+		Order savedOrder = orderRepo.save(order);
+
+		// ✅ CLEAR CART
+		cartRepo.deleteByUserId(userId);
+
+		return savedOrder;
+	}
 }

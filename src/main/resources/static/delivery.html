@@ -6,6 +6,7 @@
 <title>Delivery Address – Karim</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -897,34 +898,83 @@
     }
     btn.disabled = true;
     btn.textContent = '⏳ Locating…';
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        mapInstance.setView([lat, lng], 17);
+
+    let watchId = null;
+    let bestAccuracy = Infinity;
+    let settled = false;
+
+    function applyPosition(lat, lng, accuracy) {
+      mapInstance.invalidateSize();
+      mapMarker.setLatLng([lat, lng]);
+      mapInstance.setView([lat, lng], 17);
+      setTimeout(() => {
+        mapInstance.invalidateSize();
         mapMarker.setLatLng([lat, lng]);
         setPickedCoords(lat, lng);
-        btn.disabled = false;
-        btn.innerHTML = '📡 Use My Location';
-        showToast('✓ Location found!');
-      },
-      err => {
-        btn.disabled = false;
-        btn.innerHTML = '📡 Use My Location';
-        const msgs = {
-          1: '❌ Location permission denied',
-          2: '❌ Location unavailable',
-          3: '❌ Location request timed out'
-        };
-        showToast(msgs[err.code] || '❌ Could not get location', true);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+      }, 150);
+      btn.disabled = false;
+      btn.innerHTML = '📡 Use My Location';
+      const acc = accuracy < 50 ? `~${Math.round(accuracy)}m accuracy` : '';
+      showToast('✓ Location found! ' + acc);
+    }
+
+    function onSuccess(pos) {
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      const accuracy = pos.coords.accuracy;
+
+      // Always apply the first result immediately so user sees something
+      if (!settled) {
+        applyPosition(lat, lng, accuracy);
+        settled = true;
+        bestAccuracy = accuracy;
+      }
+
+      // If a better fix comes in (more accurate), update silently
+      if (accuracy < bestAccuracy) {
+        bestAccuracy = accuracy;
+        applyPosition(lat, lng, accuracy);
+      }
+
+      // Stop watching once we get a good fix (< 50m) or after first result
+      if (accuracy <= 50 && watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    }
+
+    function onError(err) {
+      if (settled) return; // Already got a position, ignore later errors
+      if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+      btn.disabled = false;
+      btn.innerHTML = '📡 Use My Location';
+      const msgs = {
+        1: '❌ Location permission denied',
+        2: '❌ Location unavailable',
+        3: '❌ Location request timed out'
+      };
+      showToast(msgs[err.code] || '❌ Could not get location', true);
+    }
+
+    // Use watchPosition so it can refine accuracy over a few seconds
+    // maximumAge:0 forces a completely fresh GPS fix (no cached position)
+    watchId = navigator.geolocation.watchPosition(onSuccess, onError, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    });
+
+    // Stop watching after 10 seconds regardless
+    setTimeout(() => {
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    }, 10000);
   }
 
   // ── Init ──
   loadAddresses();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 </body>
 </html>

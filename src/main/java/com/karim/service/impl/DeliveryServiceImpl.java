@@ -1,16 +1,18 @@
 package com.karim.service.impl;
 
-import com.karim.entity.Order;
-import com.karim.enums.OrderStatus;
+import com.karim.dto.OrderStatusEvent;
 import com.karim.entity.DeliveryOtp;
+import com.karim.entity.Order;
+import com.karim.entity.User;
+import com.karim.enums.OrderStatus;
 import com.karim.repository.DeliveryOtpRepository;
 import com.karim.repository.OrderRepository;
 import com.karim.repository.UserRepository;
 import com.karim.service.DeliveryService;
 import com.karim.service.EmailService;
 import com.karim.service.UserService;
-import com.karim.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,26 +21,20 @@ import java.security.SecureRandom;
 @Service
 public class DeliveryServiceImpl implements DeliveryService {
 
-    @Autowired
-    private OrderRepository orderRepo;
+    @Autowired private OrderRepository orderRepo;
+    @Autowired private UserRepository userRepository;
+    @Autowired private UserService userService;
+    @Autowired private DeliveryOtpRepository deliveryOtpRepository;
+    @Autowired private EmailService emailService;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private UserService userService;
-
-    @Autowired
-    private DeliveryOtpRepository deliveryOtpRepository;
-
-    @Autowired
-    private EmailService emailService;
+    // ✅ WebSocket broadcaster — Spring injects this automatically
+    //    once WebSocketConfig.java is in place
+    @Autowired private SimpMessagingTemplate messagingTemplate;
 
     private static final int MAX_OTP_ATTEMPTS = 3;
 
     // =================================
     // ✅ 1. ACCEPT ORDER
-    //    → Assigns agent, generates OTP, sends email to customer
     // =================================
     @Override
     @Transactional
@@ -49,35 +45,30 @@ public class DeliveryServiceImpl implements DeliveryService {
         Order order = orderRepo.findByIdAndDeletedFalse(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (order.getStatus() != OrderStatus.PAID) {
+        if (order.getStatus() != OrderStatus.PAID)
             throw new RuntimeException("Order not available for pickup");
-        }
 
-        if (order.getDeliveryAgentId() != null) {
+        if (order.getDeliveryAgentId() != null)
             throw new RuntimeException("Order is already assigned to another agent");
-        }
 
-        // Fetch agent details (for email)
         User agent = userRepository.findById(agentId)
                 .orElseThrow(() -> new RuntimeException("Agent not found"));
 
-        // Fetch customer details (for email)
         User customer = userRepository.findById(order.getUserId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
-        // Assign agent + update status
         order.setDeliveryAgentId(agentId);
         order.setStatus(OrderStatus.ASSIGNED);
         orderRepo.save(order);
 
-        // Generate OTP and save to delivery_otp table
+        // Generate & save OTP
         String otp = generateOtp();
         DeliveryOtp deliveryOtp = new DeliveryOtp();
         deliveryOtp.setOrderId(orderId);
         deliveryOtp.setOtp(otp);
         deliveryOtpRepository.save(deliveryOtp);
 
-        // Send email to customer (async)
+        // Send email (async — existing, unchanged)
         emailService.sendDeliveryAssignedEmail(
                 customer.getEmail(),
                 customer.getName(),
@@ -90,11 +81,15 @@ public class DeliveryServiceImpl implements DeliveryService {
                 agent.getMobileNumber() != null ? agent.getMobileNumber() : "—",
                 otp
         );
+
+        // 📡 Broadcast to:
+        //   1. All agents on the dashboard → order disappears from "Available"
+        //   2. Customer tracking page → status updates instantly
+        broadcastStatus(order, agent);
     }
 
     // =================================
     // 🚀 2. START DELIVERY
-    //    → status: ASSIGNED → OUT_FOR_DELIVERY
     // =================================
     @Override
     @Transactional
@@ -105,23 +100,22 @@ public class DeliveryServiceImpl implements DeliveryService {
         Order order = orderRepo.findByIdAndDeletedFalse(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (!agentId.equals(order.getDeliveryAgentId())) {
+        if (!agentId.equals(order.getDeliveryAgentId()))
             throw new RuntimeException("Not your order");
-        }
 
-        if (order.getStatus() != OrderStatus.ASSIGNED) {
+        if (order.getStatus() != OrderStatus.ASSIGNED)
             throw new RuntimeException("Order must be ASSIGNED before starting delivery");
-        }
 
         order.setStatus(OrderStatus.OUT_FOR_DELIVERY);
         orderRepo.save(order);
+
+        // 📡 Broadcast status change
+        User agent = userRepository.findById(agentId).orElse(null);
+        broadcastStatus(order, agent);
     }
 
     // =================================
-    // 📦 3. COMPLETE DELIVERY
-    //    → Verifies OTP from customer
-    //    → On success: status = DELIVERED
-    //    → On failure: increments attempts, locks after 3 wrong tries
+    // 📦 3. COMPLETE DELIVERY (OTP)
     // =================================
     @Override
     @Transactional
@@ -132,36 +126,29 @@ public class DeliveryServiceImpl implements DeliveryService {
         Order order = orderRepo.findByIdAndDeletedFalse(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        if (!agentId.equals(order.getDeliveryAgentId())) {
+        if (!agentId.equals(order.getDeliveryAgentId()))
             throw new RuntimeException("Not your order");
-        }
 
-        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY) {
+        if (order.getStatus() != OrderStatus.OUT_FOR_DELIVERY)
             throw new RuntimeException("Order is not out for delivery");
-        }
 
         DeliveryOtp deliveryOtp = deliveryOtpRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("OTP not found for this order"));
 
-        if (deliveryOtp.isVerified()) {
+        if (deliveryOtp.isVerified())
             throw new RuntimeException("OTP already used for this order");
-        }
 
-        if (deliveryOtp.getAttempts() >= MAX_OTP_ATTEMPTS) {
+        if (deliveryOtp.getAttempts() >= MAX_OTP_ATTEMPTS)
             throw new RuntimeException("OTP locked after " + MAX_OTP_ATTEMPTS + " failed attempts. Contact support.");
-        }
 
-        // ❌ Wrong OTP
         if (!deliveryOtp.getOtp().equals(enteredOtp.trim())) {
             deliveryOtp.setAttempts(deliveryOtp.getAttempts() + 1);
             deliveryOtpRepository.save(deliveryOtp);
-
             int remaining = MAX_OTP_ATTEMPTS - deliveryOtp.getAttempts();
-            if (remaining > 0) {
+            if (remaining > 0)
                 throw new RuntimeException("Incorrect OTP. " + remaining + " attempt(s) remaining.");
-            } else {
+            else
                 throw new RuntimeException("Incorrect OTP. OTP is now locked. Please contact support.");
-            }
         }
 
         // ✅ Correct OTP
@@ -170,6 +157,32 @@ public class DeliveryServiceImpl implements DeliveryService {
 
         order.setStatus(OrderStatus.DELIVERED);
         orderRepo.save(order);
+
+        // 📡 Broadcast final delivery status
+        User agent = userRepository.findById(agentId).orElse(null);
+        broadcastStatus(order, agent);
+    }
+
+    // =================================
+    // 📡 BROADCAST HELPER
+    //    Sends to two topics:
+    //    /topic/orders          → delivery-dashboard.html (all agents)
+    //    /topic/order/{orderId} → tracking.html (specific customer)
+    // =================================
+    private void broadcastStatus(Order order, User agent) {
+        OrderStatusEvent event = new OrderStatusEvent(
+                order.getId(),
+                order.getStatus().name(),
+                agent != null ? "AGT-" + agent.getId() : null,
+                agent != null ? agent.getName() : null,
+                agent != null ? agent.getMobileNumber() : null
+        );
+
+        // Dashboard — all agents see the update immediately
+        messagingTemplate.convertAndSend("/topic/orders", event);
+
+        // Customer tracking page — only that order's subscriber gets it
+        messagingTemplate.convertAndSend("/topic/order/" + order.getId(), event);
     }
 
     // =================================

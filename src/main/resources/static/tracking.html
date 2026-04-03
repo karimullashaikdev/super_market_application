@@ -5,57 +5,60 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Track Your Order — Karim Mart</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
     --bg: #f0f4f8; --white: #ffffff; --surface: #f8f9fb;
     --accent: #f5a623; --accent2: #e8522a; --green: #22c55e;
-    --blue: #3b82f6; --text: #1a1d23; --muted: #6b7280; --border: #e5e7eb;
+    --text: #1a1d23; --muted: #6b7280; --border: #e5e7eb;
   }
   body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
-  /* NAV */
-  nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 24px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
   .logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
   .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: grid; place-items: center; font-size: 15px; }
 
-  /* MAIN */
+  .live-pill-nav { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; background: rgba(34,197,94,0.1); color: #16a34a; border: 1px solid rgba(34,197,94,0.3); padding: 4px 12px; border-radius: 20px; transition: all 0.3s; }
+  .live-pill-nav.connecting { background: rgba(107,114,128,0.1); color: var(--muted); border-color: var(--border); }
+  .live-dot-sm { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .live-pill-nav:not(.connecting) .live-dot-sm { animation: blink 1.5s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
   .main { max-width: 560px; margin: 0 auto; padding: 28px 20px 60px; }
 
-  /* STATUS CARD */
   .status-card { background: var(--white); border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); overflow: hidden; margin-bottom: 20px; }
   .status-header { padding: 22px 24px; background: linear-gradient(135deg, #1a2035, #0f1628); color: #fff; }
   .status-header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
   .order-num { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
   .order-num span { color: var(--accent); }
-  .live-pill { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); padding: 3px 10px; border-radius: 20px; }
-  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.5s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
   .status-sub { font-size: 13px; color: rgba(255,255,255,0.6); }
   .status-body { padding: 22px 24px; }
 
-  /* TRACKER STEPS */
-  .tracker { display: flex; flex-direction: column; gap: 0; margin-bottom: 20px; }
-  .step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); position: relative; }
+  .tracker { display: flex; flex-direction: column; margin-bottom: 20px; }
+  .step { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); }
   .step:last-child { border-bottom: none; }
   .step-dot { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; transition: all .3s; }
-  .step-dot.done { background: rgba(34,197,94,.12); border: 2px solid rgba(34,197,94,.4); }
-  .step-dot.active { background: rgba(245,166,35,.12); border: 2px solid rgba(245,166,35,.5); animation: pulse 1.5s infinite; }
+  .step-dot.done    { background: rgba(34,197,94,.12); border: 2px solid rgba(34,197,94,.4); }
+  .step-dot.active  { background: rgba(245,166,35,.12); border: 2px solid rgba(245,166,35,.5); animation: blink 1.5s infinite; }
   .step-dot.pending { background: #f3f4f6; border: 2px solid var(--border); filter: grayscale(1); opacity: .5; }
   .step-info { flex: 1; padding-top: 6px; }
   .step-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
   .step-sub { font-size: 12px; color: var(--muted); line-height: 1.5; }
-  .step-time { font-size: 11px; color: var(--accent); font-weight: 600; margin-top: 3px; }
 
-  /* MAP */
+  .status-card.ws-update { animation: flash 0.8s ease; }
+  @keyframes flash { 0%{box-shadow:0 0 0 4px rgba(34,197,94,0.4)} 100%{box-shadow:0 2px 16px rgba(0,0,0,0.07)} }
+
+  /* ── Map ── */
   .map-card { background: var(--white); border-radius: 16px; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.07); margin-bottom: 20px; }
   .map-card-header { padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
-  .map-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-  .map-update { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap:5px; }
-  iframe.map { width: 100%; height: 300px; border: none; display: block; }
-  .map-footer { padding: 10px 16px; font-size: 12px; color: var(--muted); background: var(--surface); display: flex; align-items: center; gap: 6px; }
+  .map-card-title { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+  #trackMap { width: 100%; height: 320px; z-index: 0; }
+  .map-footer { padding: 10px 16px; font-size: 12px; color: var(--muted); background: var(--surface); display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 6px; }
+  .map-legend { display: flex; align-items: center; gap: 14px; font-size: 11px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
 
-  /* AGENT CARD */
+  /* ── Agent card ── */
   .agent-card { background: var(--white); border-radius: 16px; padding: 18px 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); margin-bottom: 20px; }
   .agent-card-title { font-family: 'Syne', sans-serif; font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
   .agent-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
@@ -64,22 +67,20 @@
   .agent-label { font-size:11px; color:var(--muted); margin-bottom:2px; }
   .agent-val { font-size:14px; font-weight:600; color:var(--text); }
 
-  /* ORDER SUMMARY */
+  /* ── Summary ── */
   .summary-card { background: var(--white); border-radius: 16px; padding: 18px 20px; box-shadow: 0 2px 16px rgba(0,0,0,0.07); }
   .summary-title { font-family:'Syne',sans-serif; font-size:13px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; margin-bottom:14px; }
   .summary-row { display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid var(--border); }
   .summary-row:last-child { border-bottom:none; font-weight:700; font-size:14px; }
-  .summary-row .s-label { color:var(--muted); }
-  .summary-row .s-val { color:var(--text); font-weight:500; }
+  .s-label { color:var(--muted); }
+  .s-val { color:var(--text); font-weight:500; }
 
-  /* LOADING / ERROR */
   .loading-wrap { text-align:center; padding:60px 20px; }
   .loader { width:44px; height:44px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .error-wrap { text-align:center; padding:60px 20px; }
-  .error-icon { font-size:48px; margin-bottom:12px; }
+  @keyframes spin { to{transform:rotate(360deg)} }
 
-  /* DELIVERED BANNER */
+  .error-wrap { text-align:center; padding:60px 20px; }
+
   .delivered-banner { background:linear-gradient(135deg,#14532d,#166534); border-radius:16px; padding:20px 24px; text-align:center; color:#fff; margin-bottom:20px; }
   .delivered-banner .d-icon { font-size:40px; margin-bottom:8px; }
   .delivered-banner h2 { font-family:'Syne',sans-serif; font-size:20px; font-weight:800; margin-bottom:6px; }
@@ -90,78 +91,124 @@
 
 <nav>
   <div class="logo"><div class="logo-icon">🛵</div>Karim Mart</div>
+  <div class="live-pill-nav connecting" id="livePill">
+    <div class="live-dot-sm"></div>
+    <span id="liveLabel">Connecting…</span>
+  </div>
 </nav>
 
 <div class="main" id="mainContent">
-  <!-- Loading state -->
-  <div class="loading-wrap" id="loadingState">
+  <div class="loading-wrap">
     <div class="loader"></div>
     <p style="color:var(--muted);font-size:14px">Loading your order details…</p>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
 <script>
-  // ─────────────────────────────────────────────
-  // CONFIG — auto-detects dev vs prod from window.location
-  // ─────────────────────────────────────────────
-  const API_BASE = window.location.origin; // e.g. http://localhost:8080 or https://yourdomain.com
+  const API_BASE = window.location.origin;
+  const params   = new URLSearchParams(window.location.search);
+  const orderId  = params.get('orderId');
 
-  // ─────────────────────────────────────────────
-  // Get orderId from URL: tracking.html?orderId=1001
-  // ─────────────────────────────────────────────
-  const params = new URLSearchParams(window.location.search);
-  const orderId = params.get('orderId');
+  let orderData      = null;
+  let stompClient    = null;
+  let leafletMap     = null;
+  let homeMarker     = null;   // 🏠 orange house — delivery address
+  let bikeMarker     = null;   // 🛵 blue bike   — agent live location
 
-  let orderData = null;
-  let mapUpdateTimer = null;
-
-  // ─────────────────────────────────────────────
-  // INIT
-  // ─────────────────────────────────────────────
   if (!orderId) {
     showError('No order ID found in the link. Please use the link from your email.');
   } else {
     fetchOrderStatus();
-    // Auto-refresh every 5 seconds while not delivered
-    setInterval(() => {
-      if (orderData && orderData.status !== 'DELIVERED') fetchOrderStatus();
-    }, 5000);
+    connectWebSocket();
   }
 
-  // ─────────────────────────────────────────────
-  // FETCH from /api/delivery/track/{orderId}
-  // ─────────────────────────────────────────────
+  // ════════════════════════════════════════
+  // WebSocket
+  // ════════════════════════════════════════
+  function connectWebSocket() {
+    const socket = new SockJS(API_BASE + '/ws');
+    stompClient  = Stomp.over(socket);
+    stompClient.debug = null;
+    stompClient.connect({}, () => {
+      setLiveStatus(true);
+      stompClient.subscribe(`/topic/order/${orderId}`, msg => {
+        handleLiveUpdate(JSON.parse(msg.body));
+      });
+    }, () => {
+      setLiveStatus(false);
+      setTimeout(connectWebSocket, 5000);
+    });
+  }
+
+  function setLiveStatus(connected) {
+    const pill  = document.getElementById('livePill');
+    const label = document.getElementById('liveLabel');
+    if (!pill) return;
+    pill.className    = 'live-pill-nav' + (connected ? '' : ' connecting');
+    label.textContent = connected ? 'Live Updates' : 'Reconnecting…';
+  }
+
+  // ── Handle incoming WebSocket message ──
+  // Two types: LOCATION (agent moved) and STATUS (order status changed)
+  function handleLiveUpdate(event) {
+    if (!orderData) { fetchOrderStatus(); return; }
+
+    if (event.type === 'LOCATION') {
+      orderData.agentLatitude  = event.latitude;
+      orderData.agentLongitude = event.longitude;
+      moveBikeMarker(event.latitude, event.longitude);
+    } else if (event.type === 'LOCATION_STOP') {
+      // Agent stopped sharing — remove bike marker
+      orderData.agentLatitude  = null;
+      orderData.agentLongitude = null;
+      clearBikeMarker();
+    } else {
+      // Status change — re-render full page
+      orderData.status      = event.status      || orderData.status;
+      orderData.agentId     = event.agentId     || orderData.agentId;
+      orderData.agentName   = event.agentName   || orderData.agentName;
+      orderData.agentMobile = event.agentMobile || orderData.agentMobile;
+      renderPage(orderData, true);
+    }
+  }
+
+  // ════════════════════════════════════════
+  // HTTP fetch
+  // ════════════════════════════════════════
   async function fetchOrderStatus() {
     try {
       const res = await fetch(`${API_BASE}/api/delivery/track/${orderId}`);
       if (!res.ok) throw new Error(await res.text());
       orderData = await res.json();
-      renderPage(orderData);
+      renderPage(orderData, false);
     } catch (err) {
       showError('Could not load order details. ' + err.message);
     }
   }
 
-  // ─────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────
-  function renderPage(data) {
-    const main = document.getElementById('mainContent');
-    const status = data.status; // PAID | ASSIGNED | OUT_FOR_DELIVERY | DELIVERED
+  // ════════════════════════════════════════
+  // Render page
+  // ════════════════════════════════════════
+  function renderPage(data, flashUpdate = false) {
+    const main        = document.getElementById('mainContent');
+    const status      = data.status;
     const isDelivered = status === 'DELIVERED';
-    const isOut = status === 'OUT_FOR_DELIVERY';
+    const isOut       = status === 'OUT_FOR_DELIVERY';
+    const showMap     = isOut || status === 'ASSIGNED';
 
-    // Step states
     const steps = [
-      { icon: '🧾', label: 'Order Placed', sub: 'Your order was confirmed and paid', done: true, active: false },
-      { icon: '🤝', label: 'Agent Assigned', sub: data.agentName ? `${data.agentName} is your delivery agent` : 'Assigning a delivery agent…', done: ['ASSIGNED','OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: status === 'ASSIGNED' },
-      { icon: '🛵', label: 'Out for Delivery', sub: 'Agent is heading to your location', done: ['OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: status === 'OUT_FOR_DELIVERY' },
-      { icon: '📦', label: 'Delivered', sub: 'Your order has been delivered', done: isDelivered, active: false },
+      { icon: '🧾', label: 'Order Placed',     sub: 'Your order was confirmed and paid',                                          done: true,        active: false },
+      { icon: '🤝', label: 'Agent Assigned',   sub: data.agentName ? `${data.agentName} is your delivery agent` : 'Assigning a delivery agent…', done: ['ASSIGNED','OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: status === 'ASSIGNED' },
+      { icon: '🛵', label: 'Out for Delivery', sub: 'Agent is heading to your location',                                         done: ['OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: isOut },
+      { icon: '📦', label: 'Delivered',        sub: 'Your order has been delivered',                                             done: isDelivered, active: false },
     ];
 
     let html = '';
 
-    // Delivered banner
     if (isDelivered) {
       html += `<div class="delivered-banner">
         <div class="d-icon">🎉</div>
@@ -170,12 +217,15 @@
       </div>`;
     }
 
-    // Status card
-    html += `<div class="status-card">
+    html += `<div class="status-card${flashUpdate ? ' ws-update' : ''}">
       <div class="status-header">
         <div class="status-header-top">
           <div class="order-num">Order <span>#${orderId}</span></div>
-          ${!isDelivered ? `<div class="live-pill"><div class="live-dot"></div>Live</div>` : '<div class="live-pill" style="background:rgba(34,197,94,.2)">✅ Done</div>'}
+          ${!isDelivered
+            ? `<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);padding:3px 10px;border-radius:20px">
+                <div style="width:7px;height:7px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div>Live
+               </div>`
+            : `<div style="font-size:11px;font-weight:600;background:rgba(34,197,94,0.2);color:#4ade80;padding:3px 10px;border-radius:20px">✅ Done</div>`}
         </div>
         <div class="status-sub">Tracking your delivery in real-time</div>
       </div>
@@ -193,21 +243,24 @@
       </div>
     </div>`;
 
-    // Live map (show when agent is out for delivery or assigned)
-    if ((isOut || status === 'ASSIGNED') && data.address) {
-      const encodedAddr = encodeURIComponent(data.address + ', Hyderabad');
-      const mapSrc = `https://maps.google.com/maps?q=${encodedAddr}&output=embed`;
+    if (showMap) {
+      const hasAgentLoc = !!(data.agentLatitude && data.agentLongitude);
       html += `<div class="map-card">
         <div class="map-card-header">
-          <div class="map-card-title">📍 Delivery Location</div>
-          <div class="map-update"><div class="live-dot"></div><span id="mapUpdateLabel">Live</span></div>
+          <div class="map-card-title">🗺️ Live Tracking</div>
+          <span style="font-size:11px;color:var(--muted)">${hasAgentLoc ? '🟢 Agent location live' : '⏳ Waiting for agent location…'}</span>
         </div>
-        <iframe class="map" id="trackMap" src="${mapSrc}" allowfullscreen loading="lazy"></iframe>
-        <div class="map-footer"><div class="live-dot"></div>Agent location updates every 5 seconds</div>
+        <div id="trackMap"></div>
+        <div class="map-footer">
+          <span>📍 ${data.address || 'Address on file'}</span>
+          <div class="map-legend">
+            <div class="legend-item"><span>🏠</span><span>Your address</span></div>
+            <div class="legend-item"><span>🛵</span><span>Agent</span></div>
+          </div>
+        </div>
       </div>`;
     }
 
-    // Agent info (if assigned)
     if (data.agentName) {
       html += `<div class="agent-card">
         <div class="agent-card-title">🛵 Your Delivery Agent</div>
@@ -217,7 +270,6 @@
       </div>`;
     }
 
-    // Order summary
     html += `<div class="summary-card">
       <div class="summary-title">📦 Order Summary</div>
       <div class="summary-row"><span class="s-label">Order #</span><span class="s-val">${orderId}</span></div>
@@ -228,22 +280,198 @@
 
     main.innerHTML = html;
 
-    // Start updating map timestamp
-    startMapUpdateTick();
+    // Reset markers on re-render
+    homeMarker = null;
+    bikeMarker = null;
+
+    if (showMap) {
+      initLeafletMap(data);
+    }
+
+    if (isDelivered && stompClient) {
+      stompClient.disconnect();
+      setLiveStatus(false);
+      const lbl = document.getElementById('liveLabel');
+      if (lbl) lbl.textContent = 'Delivered ✅';
+    }
   }
 
-  function startMapUpdateTick() {
-    if (mapUpdateTimer) clearInterval(mapUpdateTimer);
-    mapUpdateTimer = setInterval(() => {
-      const el = document.getElementById('mapUpdateLabel');
-      if (el) el.textContent = 'Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
-    }, 5000);
+  // ════════════════════════════════════════
+  // Move bike marker smoothly (no re-render)
+  // ════════════════════════════════════════
+  function moveBikeMarker(lat, lng) {
+    if (!leafletMap) return;
+    if (bikeMarker) {
+      bikeMarker.setLatLng([lat, lng]);
+    } else {
+      bikeMarker = L.marker([lat, lng], { icon: bikeIcon() }).addTo(leafletMap);
+      bikeMarker.bindPopup('<b>🛵 Delivery Agent</b><br>On the way to you!', { closeButton: false });
+    }
+    // If agent is now at/near home, fit both at close zoom
+    if (homeMarker) {
+      const home = homeMarker.getLatLng();
+      const dist = Math.sqrt(Math.pow(home.lat - lat, 2) + Math.pow(home.lng - lng, 2));
+      if (dist < 0.0005) {
+        leafletMap.setView([lat, lng], 17);
+      }
+    }
+    const hdr = document.querySelector('.map-card-header span:last-child');
+    if (hdr) hdr.textContent = '🟢 Agent location live';
   }
 
+  // Called when agent stops sharing — remove bike marker, reset header
+  function clearBikeMarker() {
+    if (bikeMarker && leafletMap) {
+      leafletMap.removeLayer(bikeMarker);
+      bikeMarker = null;
+    }
+    const hdr = document.querySelector('.map-card-header span:last-child');
+    if (hdr) hdr.textContent = '⏸ Agent paused location sharing';
+  }
+
+  // ════════════════════════════════════════
+  // Geocoding helpers
+  // ════════════════════════════════════════
+  async function tryGeocode(query) {
+    try {
+      const res  = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=in&q=${encodeURIComponent(query)}`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      const data = await res.json();
+      if (data && data.length > 0)
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    } catch (_) {}
+    return null;
+  }
+
+  async function geocodeAddress(data) {
+    const city  = data.addressCity  || '';
+    const state = data.addressState || '';
+    const pin   = data.addressPin   || '';
+    const line2 = data.addressLine2 || '';
+
+    if (line2 && city && pin) {
+      const r = await tryGeocode(`${line2}, ${city}, ${state}, ${pin}, India`);
+      if (r) return r;
+    }
+    if (pin && city) {
+      const r = await tryGeocode(`${pin}, ${city}, India`);
+      if (r) return r;
+    }
+    if (pin) {
+      const r = await tryGeocode(`${pin}, India`);
+      if (r) return r;
+    }
+    if (city) {
+      const r = await tryGeocode(`${city}, ${state}, India`);
+      if (r) return r;
+    }
+    return null;
+  }
+
+  // ════════════════════════════════════════
+  // Marker icon factories
+  // ════════════════════════════════════════
+  function homeIcon() {
+    return L.divIcon({
+      className: '',
+      html: `<div style="position:relative;width:36px;height:46px;display:flex;align-items:flex-start;justify-content:center;">
+               <div style="width:30px;height:30px;border-radius:50% 50% 50% 0;background:#f5a623;border:3px solid white;transform:rotate(-45deg);box-shadow:0 4px 12px rgba(0,0,0,0.3);"></div>
+               <div style="position:absolute;top:6px;left:50%;transform:translateX(-50%);font-size:13px;">🏠</div>
+             </div>`,
+      iconSize:   [36, 46],
+      iconAnchor: [18, 46],
+    });
+  }
+
+  function bikeIcon() {
+    return L.divIcon({
+      className: '',
+      html: `<div style="position:relative;width:44px;height:44px;display:flex;align-items:center;justify-content:center;">
+               <div style="width:40px;height:40px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 4px 14px rgba(37,99,235,0.5);display:flex;align-items:center;justify-content:center;font-size:20px;animation:bikeGlow 2s infinite;">🛵</div>
+             </div>
+             <style>@keyframes bikeGlow{0%,100%{box-shadow:0 4px 14px rgba(37,99,235,0.5)}50%{box-shadow:0 4px 24px rgba(37,99,235,0.9)}}</style>`,
+      iconSize:   [44, 44],
+      iconAnchor: [22, 22],
+    });
+  }
+
+  // ════════════════════════════════════════
+  // Init Leaflet map
+  // ════════════════════════════════════════
+  async function initLeafletMap(data) {
+    const DEFAULT_LAT = 17.3850;
+    const DEFAULT_LNG = 78.4867;
+
+    if (leafletMap) {
+      leafletMap.remove();
+      leafletMap = homeMarker = bikeMarker = null;
+    }
+
+    // ── Resolve delivery address coordinates ──
+    let homeLat = parseFloat(data.latitude)  || null;
+    let homeLng = parseFloat(data.longitude) || null;
+
+    if (!homeLat || !homeLng) {
+      const r = await geocodeAddress(data);
+      if (r) { homeLat = r.lat; homeLng = r.lng; }
+    }
+    const usingFallback = !homeLat || !homeLng;
+    if (usingFallback) { homeLat = DEFAULT_LAT; homeLng = DEFAULT_LNG; }
+
+    // ── Agent's current location ──
+    const agentLat = parseFloat(data.agentLatitude)  || null;
+    const agentLng = parseFloat(data.agentLongitude) || null;
+    const hasAgent = !!(agentLat && agentLng);
+
+    // ── Centre map: if agent known, fit both; else centre on home ──
+    leafletMap = L.map('trackMap', { zoomControl: true, attributionControl: false });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 })
+     .addTo(leafletMap);
+
+    // 🏠 House marker — delivery address
+    homeMarker = L.marker([homeLat, homeLng], { icon: homeIcon() }).addTo(leafletMap);
+    homeMarker.bindPopup(
+      `<b>Your Delivery Address</b><br>${data.address || ''}`,
+      { closeButton: false }
+    );
+
+    if (hasAgent) {
+      // 🛵 Bike marker — agent live location
+      bikeMarker = L.marker([agentLat, agentLng], { icon: bikeIcon() }).addTo(leafletMap);
+      bikeMarker.bindPopup('<b>🛵 Delivery Agent</b><br>On the way to you!', { closeButton: false }).openPopup();
+
+      // If agent and home are same/very close (within ~50m), just setView at zoom 17
+      // instead of fitBounds which would zoom out absurdly for identical coordinates
+      const dist = Math.sqrt(Math.pow(homeLat - agentLat, 2) + Math.pow(homeLng - agentLng, 2));
+      if (dist < 0.0005) {
+        // Same location — zoom in close, show both markers overlapping
+        leafletMap.setView([homeLat, homeLng], 17);
+      } else {
+        const bounds = L.latLngBounds(
+          [homeLat, homeLng],
+          [agentLat, agentLng]
+        ).pad(0.3);
+        leafletMap.fitBounds(bounds);
+      }
+    } else {
+      // No agent location yet — centre on home address
+      leafletMap.setView([homeLat, homeLng], usingFallback ? 12 : 15);
+      homeMarker.openPopup();
+    }
+
+    setTimeout(() => leafletMap.invalidateSize(), 150);
+  }
+
+  // ════════════════════════════════════════
+  // Error
+  // ════════════════════════════════════════
   function showError(msg) {
     document.getElementById('mainContent').innerHTML = `
       <div class="error-wrap">
-        <div class="error-icon">😕</div>
+        <div style="font-size:48px;margin-bottom:12px">😕</div>
         <p style="font-size:15px;font-weight:600;margin-bottom:8px">Something went wrong</p>
         <p style="font-size:13px;color:var(--muted)">${msg}</p>
       </div>`;

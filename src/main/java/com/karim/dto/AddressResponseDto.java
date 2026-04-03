@@ -22,4 +22,9 @@ public class AddressResponseDto {
     private Boolean isDefault;
     private String formattedAddress;   // ready-made string for checkout
     private LocalDateTime createdAt;
+
+    // ✅ FIX: expose coordinates so delivery.html stores them
+    //         and tracking.html can use them for the exact map pin
+    private Double latitude;
+    private Double longitude;
 }

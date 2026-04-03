@@ -44,4 +44,5 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByStatusAndDeliveryAgentIdIsNull(OrderStatus status);
 
     List<Order> findByDeliveryAgentId(Long deliveryAgentId);
+    
 }
