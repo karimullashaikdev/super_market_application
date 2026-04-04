@@ -563,6 +563,7 @@
   // ── Logout ──
   function logout() {
     if (stompClient) stompClient.disconnect();
+    stopLocationSharing();  // clean up GPS + clear persisted order
     localStorage.removeItem('authToken');
     localStorage.removeItem('username');
     window.location.href = 'login.html';
@@ -588,6 +589,43 @@
   let lastKnownLng       = null;
   let visibilityHandler  = null;   // stored so we can remove it later
 
+  // ── Persist active delivery to localStorage so restart resumes sharing ──
+  function _persistActiveOrder(orderId) {
+    if (orderId) {
+      localStorage.setItem('activeDeliveryOrderId', String(orderId));
+    } else {
+      localStorage.removeItem('activeDeliveryOrderId');
+    }
+  }
+
+  // ── On page load: resume location sharing if an active delivery is in progress ──
+  async function _resumeLocationSharingIfNeeded() {
+    const savedOrderId = localStorage.getItem('activeDeliveryOrderId');
+    if (!savedOrderId) return;
+
+    // Verify the order is still OUT_FOR_DELIVERY on the server
+    try {
+      const res = await api('GET', '/my-orders');
+      if (!res) return;
+      const orders = res.ok ? await res.json() : [];
+      const activeOrder = orders.find(
+        o => String(o.id) === String(savedOrderId) && o.status === 'OUT_FOR_DELIVERY'
+      );
+      if (activeOrder) {
+        // Order is still active — resume GPS sharing silently
+        showToast('info', '📡 Resuming location sharing for Order #' + savedOrderId);
+        startLocationSharing(Number(savedOrderId));
+      } else {
+        // Order is no longer active — clear persisted state
+        _persistActiveOrder(null);
+      }
+    } catch (_) {
+      // Network error on load — still try to resume sharing in case it comes back
+      const parsedId = Number(savedOrderId);
+      if (parsedId) startLocationSharing(parsedId);
+    }
+  }
+
   // Called automatically after startDelivery() succeeds
   function startLocationSharing(orderId) {
     if (!navigator.geolocation) {
@@ -599,6 +637,7 @@
     _clearLocationSession();
 
     activeTrackOrder = orderId;
+    _persistActiveOrder(orderId);  // ✅ survive page reload
     document.getElementById('liveTrackBar').classList.add('visible');
     setTrackState('requesting', '⏳ Starting location sharing…', 'Order #' + orderId);
 
@@ -661,6 +700,7 @@
   // Called automatically after completeDelivery() OTP confirmed
   async function stopLocationSharing() {
     _clearLocationSession();
+    _persistActiveOrder(null);  // ✅ clear persisted state
 
     // Notify backend + customer that sharing has stopped
     if (activeTrackOrder) {
@@ -769,6 +809,7 @@
   (async () => {
     await Promise.all([loadAvailableOrders(), loadMyOrders()]);
     connectWebSocket(); // connect after initial data load
+    await _resumeLocationSharingIfNeeded(); // ✅ auto-resume if delivery was in progress
   })();
 </script>
 </body>

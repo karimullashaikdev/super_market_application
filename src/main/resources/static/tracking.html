@@ -174,12 +174,22 @@
       orderData.agentLongitude = null;
       clearBikeMarker();
     } else {
-      // Status change — re-render full page
+      // Status change — update order data and re-render ONLY the status card,
+      // NOT the map. This prevents the map from being destroyed and rebuilt
+      // which would freeze the live location tracking.
       orderData.status      = event.status      || orderData.status;
       orderData.agentId     = event.agentId     || orderData.agentId;
       orderData.agentName   = event.agentName   || orderData.agentName;
       orderData.agentMobile = event.agentMobile || orderData.agentMobile;
-      renderPage(orderData, true);
+
+      const isDelivered = orderData.status === 'DELIVERED';
+      if (isDelivered) {
+        // Full re-render on delivery complete is fine (tracking stops anyway)
+        renderPage(orderData, true);
+      } else {
+        // Partial update: only refresh the status card + agent card, keep map alive
+        renderStatusCard(orderData, true);
+      }
     }
   }
 
@@ -194,6 +204,64 @@
       renderPage(orderData, false);
     } catch (err) {
       showError('Could not load order details. ' + err.message);
+    }
+  }
+
+  // ════════════════════════════════════════
+  // Partial render — only status + agent card (map stays untouched)
+  // Called on STATUS websocket events during OUT_FOR_DELIVERY to avoid
+  // destroying and rebuilding the map which stops live location tracking.
+  // ════════════════════════════════════════
+  function renderStatusCard(data, flashUpdate = false) {
+    const status = data.status;
+    const isDelivered = status === 'DELIVERED';
+    const isOut = status === 'OUT_FOR_DELIVERY';
+
+    const steps = [
+      { icon: '🧾', label: 'Order Placed',     sub: 'Your order was confirmed and paid',                                                     done: true,        active: false },
+      { icon: '🤝', label: 'Agent Assigned',   sub: data.agentName ? `${data.agentName} is your delivery agent` : 'Assigning a delivery agent…', done: ['ASSIGNED','OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: status === 'ASSIGNED' },
+      { icon: '🛵', label: 'Out for Delivery', sub: 'Agent is heading to your location',                                                     done: ['OUT_FOR_DELIVERY','DELIVERED'].includes(status), active: isOut },
+      { icon: '📦', label: 'Delivered',        sub: 'Your order has been delivered',                                                         done: isDelivered, active: false },
+    ];
+
+    const statusCardEl = document.getElementById('statusCardWrapper');
+    if (statusCardEl) {
+      statusCardEl.innerHTML = `<div class="status-card${flashUpdate ? ' ws-update' : ''}">
+        <div class="status-header">
+          <div class="status-header-top">
+            <div class="order-num">Order <span>#${orderId}</span></div>
+            ${!isDelivered
+              ? `<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.3);padding:3px 10px;border-radius:20px">
+                  <div style="width:7px;height:7px;border-radius:50%;background:#22c55e;animation:blink 1.5s infinite"></div>Live
+                 </div>`
+              : `<div style="font-size:11px;font-weight:600;background:rgba(34,197,94,0.2);color:#4ade80;padding:3px 10px;border-radius:20px">✅ Done</div>`}
+          </div>
+          <div class="status-sub">Tracking your delivery in real-time</div>
+        </div>
+        <div class="status-body">
+          <div class="tracker">
+            ${steps.map(s => `
+              <div class="step">
+                <div class="step-dot ${s.done ? 'done' : s.active ? 'active' : 'pending'}">${s.done ? '✓' : s.icon}</div>
+                <div class="step-info">
+                  <div class="step-label">${s.label}</div>
+                  <div class="step-sub">${s.sub}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    // Update agent card if it exists
+    const agentCardEl = document.getElementById('agentCardWrapper');
+    if (agentCardEl && data.agentName) {
+      agentCardEl.innerHTML = `<div class="agent-card">
+        <div class="agent-card-title">🛵 Your Delivery Agent</div>
+        <div class="agent-row"><div class="agent-icon">🪪</div><div><div class="agent-label">Agent ID</div><div class="agent-val">${data.agentId || '—'}</div></div></div>
+        <div class="agent-row"><div class="agent-icon">👤</div><div><div class="agent-label">Name</div><div class="agent-val">${data.agentName}</div></div></div>
+        <div class="agent-row"><div class="agent-icon">📱</div><div><div class="agent-label">Mobile</div><div class="agent-val">${data.agentMobile || '—'}</div></div></div>
+      </div>`;
     }
   }
 
@@ -224,7 +292,7 @@
       </div>`;
     }
 
-    html += `<div class="status-card${flashUpdate ? ' ws-update' : ''}">
+    html += `<div id="statusCardWrapper"><div class="status-card${flashUpdate ? ' ws-update' : ''}">
       <div class="status-header">
         <div class="status-header-top">
           <div class="order-num">Order <span>#${orderId}</span></div>
@@ -248,11 +316,11 @@
             </div>`).join('')}
         </div>
       </div>
-    </div>`;
+    </div></div>`;
 
     if (showMap) {
       const hasAgentLoc = !!(data.agentLatitude && data.agentLongitude);
-      html += `<div class="map-card">
+      html += `<div id="mapCardWrapper"><div class="map-card">
         <div class="map-card-header">
           <div class="map-card-title">🗺️ Live Tracking</div>
           <span style="font-size:11px;color:var(--muted)">${hasAgentLoc ? '🟢 Agent location live' : '⏳ Waiting for agent location…'}</span>
@@ -265,16 +333,16 @@
             <div class="legend-item"><span>🛵</span><span>Agent</span></div>
           </div>
         </div>
-      </div>`;
+      </div></div>`;
     }
 
     if (data.agentName) {
-      html += `<div class="agent-card">
+      html += `<div id="agentCardWrapper"><div class="agent-card">
         <div class="agent-card-title">🛵 Your Delivery Agent</div>
         <div class="agent-row"><div class="agent-icon">🪪</div><div><div class="agent-label">Agent ID</div><div class="agent-val">${data.agentId || '—'}</div></div></div>
         <div class="agent-row"><div class="agent-icon">👤</div><div><div class="agent-label">Name</div><div class="agent-val">${data.agentName}</div></div></div>
         <div class="agent-row"><div class="agent-icon">📱</div><div><div class="agent-label">Mobile</div><div class="agent-val">${data.agentMobile || '—'}</div></div></div>
-      </div>`;
+      </div></div>`;
     }
 
     html += `<div class="summary-card">
