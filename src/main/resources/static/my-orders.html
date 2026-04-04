@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Orders – Karim</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --border: #e8e4dc;
+    --accent: #2d6a4f;
+    --accent-light: rgba(45,106,79,0.08);
+    --text: #1a1a1a;
+    --muted: #888;
+    --tag-bg: #eef6f1;
+    --tag-color: #2d6a4f;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Nav ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 1px 20px rgba(0,0,0,0.04);
+  }
+  .nav-logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .nav-logo span {
+    width: 30px; height: 30px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: white;
+    font-size: 14px;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .user-chip {
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid rgba(45,106,79,0.2);
+  }
+  .nav-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .nav-btn:hover { border-color: #ccc; color: var(--text); }
+  .nav-btn.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .nav-btn.primary:hover { opacity: 0.88; }
+
+  /* ── Hero ── */
+  .hero {
+    padding: 60px 40px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+    animation: fadeUp 0.5s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .hero-label {
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 12px;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.15;
+    margin-bottom: 10px;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero p { color: var(--muted); font-size: 15px; font-weight: 300; }
+
+  /* ── Main ── */
+  .main { max-width: 900px; margin: 0 auto; padding: 0 40px 60px; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 40px;
+    color: var(--muted);
+  }
+  .empty-state .icon { font-size: 56px; margin-bottom: 16px; }
+  .empty-state h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    margin-bottom: 8px;
+    font-weight: 400;
+  }
+  .empty-state p { font-size: 14px; margin-bottom: 24px; }
+  .empty-state a {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .empty-state a:hover { opacity: 0.88; }
+
+  /* ── Order card ── */
+  .order-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .order-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeUp 0.5s ease both;
+    cursor: pointer;
+  }
+  .order-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.07);
+  }
+
+  .order-header {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .order-meta { display: flex; flex-direction: column; gap: 4px; }
+  .order-id {
+    font-family: 'DM Serif Display', serif;
+    font-size: 17px;
+    font-weight: 400;
+  }
+  .order-date { font-size: 12px; color: var(--muted); font-weight: 300; }
+
+  .order-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .order-total {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+  }
+
+  /* Status badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .status-CREATED    { background: #fff8e7; color: #b8860b; border: 1px solid #f0d97a; }
+  .status-PAID       { background: #eef6f1; color: #2d6a4f; border: 1px solid #b7e4c7; }
+  .status-PROCESSING { background: #e8f0fe; color: #1a56db; border: 1px solid #bccffd; }
+  .status-SHIPPED    { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+  .status-DELIVERED  { background: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+  .status-CANCELLED  { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+  .status-PENDING    { background: #fafafa; color: #777;    border: 1px solid #ddd; }
+
+  /* Items preview strip */
+  .order-preview {
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .preview-items { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .preview-chip {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 400;
+  }
+  .preview-more {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .expand-arrow {
+    font-size: 18px;
+    color: var(--muted);
+    transition: transform 0.3s;
+    flex-shrink: 0;
+  }
+  .order-card.expanded .expand-arrow { transform: rotate(180deg); }
+
+  /* ── Expanded detail panel ── */
+  .order-detail {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 0;
+    border-top: 0px solid var(--border);
+  }
+  .order-card.expanded .order-detail {
+    max-height: 1000px;
+    opacity: 1;
+    border-top: 1px solid var(--border);
+  }
+
+  .detail-inner { padding: 24px; }
+
+  /* Items table */
+  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  .items-table th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0 12px 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .items-table td {
+    padding: 12px 12px 12px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    vertical-align: middle;
+  }
+  .items-table tr:last-child td { border-bottom: none; }
+  .item-name { font-weight: 500; }
+  .item-id { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .item-price-cell { font-family: 'DM Serif Display', serif; font-size: 15px; }
+  .item-qty-cell {
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 3px 10px !important;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    display: inline-block;
+  }
+
+  /* Order summary row */
+  .detail-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+  }
+  .detail-addr {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 340px;
+  }
+  .detail-addr strong { color: var(--text); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 4px; }
+  .detail-totals { text-align: right; }
+  .total-line {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 24px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .total-line.grand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--text);
+    margin-top: 8px;
+  }
+  .total-line.grand span:first-child { font-family: 'DM Sans', sans-serif; font-size: 13px; color: var(--muted); }
+
+  /* Payment chip */
+  .payment-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+    background: #f5f5f5;
+    color: #555;
+    border: 1px solid #ddd;
+    margin-top: 6px;
+  }
+
+  /* ── Skeleton ── */
+  @keyframes pulse {
+    from { opacity: 1; } to { opacity: 0.4; }
+  }
+  .skel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+  }
+  .skel { background: #e8e4dc; border-radius: 6px; animation: pulse 1.4s ease infinite alternate; }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed; bottom: 28px; right: 28px;
+    background: var(--text); color: white;
+    padding: 12px 20px; border-radius: 10px;
+    font-size: 14px; font-weight: 500;
+    opacity: 0; transform: translateY(12px);
+    transition: all 0.3s; pointer-events: none; z-index: 999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 600px) {
+    nav { padding: 0 20px; }
+    .hero { padding: 40px 20px 28px; }
+    .hero h1 { font-size: 28px; }
+    .main { padding: 0 20px 40px; }
+    .order-header { padding: 16px 18px; }
+    .order-preview { padding: 12px 18px; }
+    .detail-inner { padding: 16px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo" onclick="window.location.href='products.html'">
+    <span>✦</span> Karim
+  </div>
+  <div class="nav-right">
+    <div class="user-chip" id="userChip">👤 User</div>
+    <a class="nav-btn" href="products.html">🛍️ Shop</a>
+    <a class="nav-btn" href="cart.html">🛒 Cart</a>
+    <button class="nav-btn" onclick="logout()">Sign out</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-label">Order History</div>
+  <h1>Your <em>orders</em></h1>
+  <p id="orderSummaryLine">Loading your orders…</p>
+</div>
+
+<div class="main">
+  <div id="orderList"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Auth guard ──
+  (function guard() {
+    const token = localStorage.getItem('authToken');
+    if (!token) { window.location.href = 'login.html'; return; }
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const role = (payload.role || payload.roles || payload.authorities || '').toString().toUpperCase();
+      if (role.includes('ADMIN')) window.location.href = 'admin.html';
+    } catch {
+      localStorage.clear();
+      window.location.href = 'login.html';
+    }
+  })();
+
+  const username = localStorage.getItem('username') || 'User';
+  document.getElementById('userChip').textContent = '👤 ' + username;
+  const token = localStorage.getItem('authToken');
+
+  // ── Helpers ──
+  function fmt(n) { return '₹' + Number(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+
+  function fmtDate(dt) {
+    if (!dt) return '—';
+    const d = new Date(dt);
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+      + ' · '
+      + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function statusEmoji(s) {
+    const map = { CREATED: '🕐', PAID: '✅', PROCESSING: '⚙️', SHIPPED: '📦', DELIVERED: '🎉', CANCELLED: '❌', PENDING: '⏳' };
+    return map[(s || '').toUpperCase()] || '📋';
+  }
+
+  function paymentLabel(p) {
+    if (!p) return 'Unknown';
+    const m = { COD: '💵 Cash on Delivery', ONLINE: '💳 Online', UPI: '📱 UPI', CARD: '💳 Card', WALLET: '👝 Wallet' };
+    return m[p.toUpperCase()] || p;
+  }
+
+  // ── Skeleton ──
+  function showSkeleton() {
+    document.getElementById('orderList').innerHTML = [1,2,3].map(() => `
+      <div class="skel-card" style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <div>
+            <div class="skel" style="height:18px;width:160px;margin-bottom:8px"></div>
+            <div class="skel" style="height:11px;width:120px"></div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="skel" style="height:22px;width:80px;border-radius:20px"></div>
+            <div class="skel" style="height:22px;width:70px"></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="skel" style="height:26px;width:100px;border-radius:20px"></div>
+          <div class="skel" style="height:26px;width:80px;border-radius:20px"></div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // ── Load orders ──
+  async function loadOrders() {
+    showSkeleton();
+    try {
+      const res = await fetch('/api/order/my', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+
+      if (res.status === 401) { localStorage.clear(); window.location.href = 'login.html'; return; }
+      if (!res.ok) throw new Error('Server returned ' + res.status);
+
+      const data = await res.json();
+
+      // API returns a message string when no orders
+      if (typeof data === 'string' || !Array.isArray(data) || data.length === 0) {
+        renderEmpty();
+        return;
+      }
+
+      // Sort newest first
+      const orders = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      document.getElementById('orderSummaryLine').textContent =
+        `${orders.length} order${orders.length !== 1 ? 's' : ''} placed`;
+
+      renderOrders(orders);
+
+    } catch (err) {
+      document.getElementById('orderList').innerHTML = `
+        <div style="text-align:center;padding:60px;color:var(--muted)">
+          <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+          <div style="font-size:15px;color:#1a1a1a;margin-bottom:6px">Failed to load orders</div>
+          <div style="font-size:13px;margin-bottom:16px">${err.message}</div>
+          <button onclick="loadOrders()" style="padding:8px 20px;background:var(--accent);color:white;border:none;border-radius:8px;cursor:pointer;font-size:13px">Retry</button>
+        </div>`;
+    }
+  }
+
+  // ── Render empty ──
+  function renderEmpty() {
+    document.getElementById('orderSummaryLine').textContent = 'No orders yet';
+    document.getElementById('orderList').innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🛍️</div>
+        <h3>No orders yet</h3>
+        <p>Your order history will appear here once you place an order.</p>
+        <a href="products.html">Browse Products</a>
+      </div>`;
+  }
+
+  // ── Render order list ──
+  function renderOrders(orders) {
+    const list = document.getElementById('orderList');
+    list.innerHTML = '<div class="order-list" id="orderListInner"></div>';
+    const inner = document.getElementById('orderListInner');
+
+    orders.forEach((order, idx) => {
+      const items = order.items || [];
+      const previewItems = items.slice(0, 3);
+      const moreCount = items.length - previewItems.length;
+      const statusClass = 'status-' + (order.status || 'PENDING').toUpperCase();
+
+      const card = document.createElement('div');
+      card.className = 'order-card';
+      card.style.animationDelay = (idx * 0.07) + 's';
+      card.dataset.orderId = order.id;
+
+      card.innerHTML = `
+        <div class="order-header">
+          <div class="order-meta">
+            <div class="order-id">Order #${order.id}</div>
+            <div class="order-date">${fmtDate(order.createdAt)}</div>
+          </div>
+          <div class="order-right">
+            <div class="order-total">${fmt(order.totalAmount)}</div>
+            <div class="status-badge ${statusClass}">${statusEmoji(order.status)} ${order.status || 'Pending'}</div>
+          </div>
+        </div>
+        <div class="order-preview">
+          <div class="preview-items">
+            ${previewItems.map(it => `<div class="preview-chip">${it.productName || 'Item'}</div>`).join('')}
+            ${moreCount > 0 ? `<div class="preview-more">+${moreCount} more</div>` : ''}
+            ${items.length === 0 ? '<div class="preview-more">No items</div>' : ''}
+          </div>
+          <div class="expand-arrow">⌄</div>
+        </div>
+        <div class="order-detail">
+          <div class="detail-inner">
+            ${renderItemsTable(items)}
+            <div class="detail-footer">
+              <div class="detail-addr">
+                <strong>Delivery Address</strong>
+                ${order.address || '—'}
+                <div class="payment-chip">${paymentLabel(order.paymentType)}</div>
+              </div>
+              <div class="detail-totals">
+                ${renderTotals(items, order.totalAmount)}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Toggle expand on click (not on inner buttons)
+      card.addEventListener('click', (e) => {
+        // Don't collapse if clicking a link/button inside
+        if (e.target.closest('a, button')) return;
+        card.classList.toggle('expanded');
+      });
+
+      inner.appendChild(card);
+    });
+  }
+
+  // ── Items table HTML ──
+  function renderItemsTable(items) {
+    if (!items || items.length === 0) {
+      return '<p style="font-size:13px;color:var(--muted);margin-bottom:16px">No item details available.</p>';
+    }
+    return `
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Unit Price</th>
+            <th style="text-align:center">Qty</th>
+            <th style="text-align:right">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${items.map(it => {
+            const name  = it.productName || it.name || 'Product';
+            const price = it.price || 0;
+            const qty   = it.quantity || 1;
+            return `
+              <tr>
+                <td>
+                  <div class="item-name">${name}</div>
+                  <div class="item-id">ID: ${it.productId || it.id || '—'}</div>
+                </td>
+                <td class="item-price-cell">${fmt(price)}</td>
+                <td style="text-align:center">
+                  <span class="item-qty-cell">×${qty}</span>
+                </td>
+                <td class="item-price-cell" style="text-align:right">${fmt(price * qty)}</td>
+              </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  // ── Totals breakdown ──
+  function renderTotals(items, total) {
+    const subtotal = items.reduce((s, it) => s + (it.price || 0) * (it.quantity || 1), 0);
+    const itemCount = items.reduce((s, it) => s + (it.quantity || 1), 0);
+    return `
+      <div class="total-line"><span>${itemCount} item${itemCount !== 1 ? 's' : ''}</span><span>${fmt(subtotal)}</span></div>
+      <div class="total-line"><span>Shipping</span><span style="color:#2d6a4f">Free</span></div>
+      <div class="total-line grand"><span>Total</span><span>${fmt(total ?? subtotal)}</span></div>`;
+  }
+
+  function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = isError ? '#e06c6c' : 'var(--text)';
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+  loadOrders();
+</script>
+</body>
+</html>

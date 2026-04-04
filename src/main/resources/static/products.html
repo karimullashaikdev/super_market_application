@@ -60,7 +60,7 @@
   .nav-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
   }
   .user-chip {
     background: var(--accent-light);
@@ -83,6 +83,29 @@
     transition: all 0.2s;
   }
   .logout-btn:hover { border-color: #ccc; color: var(--text); }
+
+  /* ── NEW: My Orders nav button ── */
+  .orders-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .orders-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+  }
 
   .cart-btn {
     display: flex;
@@ -384,6 +407,10 @@
   </div>
   <div class="nav-right">
     <div class="user-chip" id="userChip">👤 User</div>
+
+    <!-- ✅ NEW: My Orders button -->
+    <a class="orders-btn" href="my-orders.html">📋 My Orders</a>
+
     <button class="cart-btn" id="cartBtn" onclick="goToCart()" style="display:none">
       🛒 View Cart <span class="cart-count" id="cartCount">0</span>
     </button>
@@ -484,8 +511,6 @@
     currentPage = page;
 
     try {
-      // Build query params — pass category & search to the API so the server
-      // filters and paginates correctly (not client-side).
       const params = new URLSearchParams({ page: page, size: pageSize });
       if (currentFilter && currentFilter !== 'all') params.set('category', currentFilter);
       if (searchQuery && searchQuery.trim()) params.set('search', searchQuery.trim());
@@ -510,7 +535,6 @@
 
       const data = await res.json();
 
-      // Spring Page response fields
       const products     = data.content || [];
       totalPages         = data.totalPages || 1;
       totalElements      = data.totalElements || products.length;
@@ -519,8 +543,6 @@
       renderProducts(products);
       renderPagination();
 
-      // Only rebuild filter buttons on initial load so category buttons
-      // don't vanish when a filter is already selected.
       if (page === 0 && currentFilter === 'all' && !searchQuery) {
         buildFilters(products);
       }
@@ -539,9 +561,6 @@
 
   // ── Render product cards ──
   function renderProducts(products) {
-    // No client-side filtering here — the API already filtered by category
-    // and search. Filtering here was the bug: it cut down a full page of 20
-    // to only the few that matched, making pagination look broken.
     const grid = document.getElementById('productGrid');
 
     if (products.length === 0) {
@@ -599,11 +618,8 @@
     info.innerHTML = `Showing <strong>${from}–${to}</strong> of <strong>${totalElements}</strong> products`;
 
     let btns = '';
-
-    // Prev button
     btns += `<button class="page-btn" onclick="loadProducts(${currentPage - 1})" ${currentPage === 0 ? 'disabled' : ''}>‹ Prev</button>`;
 
-    // Page number buttons — show smart range
     const range = getPageRange(currentPage, totalPages);
     let lastPage = -1;
     for (const p of range) {
@@ -618,13 +634,10 @@
       }
     }
 
-    // Next button
     btns += `<button class="page-btn" onclick="loadProducts(${currentPage + 1})" ${currentPage >= totalPages - 1 ? 'disabled' : ''}>Next ›</button>`;
-
     controls.innerHTML = btns;
   }
 
-  // ── Smart page range: first, last, and window around current ──
   function getPageRange(current, total) {
     if (total <= 7) return Array.from({ length: total }, (_, i) => i);
     const pages = new Set();
@@ -636,7 +649,6 @@
     return [...pages].sort((a, b) => a - b);
   }
 
-  // ── Category filter buttons (built from current page's data) ──
   function buildFilters(products) {
     const categories = [...new Set(products.map(p =>
       (p.category || p.categoryName || '').toLowerCase()
@@ -657,17 +669,15 @@
     currentFilter = cat;
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     el.classList.add('active');
-    loadProducts(0); // reset to first page on filter change
+    loadProducts(0);
   }
 
-  // ── Search (debounced — waits 400ms after typing) ──
   function onSearch() {
     searchQuery = document.getElementById('searchInput').value;
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => loadProducts(0), 400);
   }
 
-  // ── Page size change ──
   function onPageSizeChange() {
     pageSize = parseInt(document.getElementById('pageSizeSelect').value);
     loadProducts(0);
