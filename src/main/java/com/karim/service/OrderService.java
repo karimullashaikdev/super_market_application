@@ -18,4 +18,6 @@ public interface OrderService {
 	
 	 // ✅ NEW METHOD (ADD THIS)
     Order markOrderAsPaid(Long orderId);
+    
+    Order findById(Long orderId);
 }

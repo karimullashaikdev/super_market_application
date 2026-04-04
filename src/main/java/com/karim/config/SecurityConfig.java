@@ -58,10 +58,12 @@ public class SecurityConfig {
 
                         // -------- FIX 2: WebSocket handshake endpoint (public) --------
                         // SockJS connects here — must be permitted before the JWT filter blocks it.
-                        .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/ws/**","/api/chat/message").permitAll()
 
                         // -------- CORS preflight --------
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        
+                        .requestMatchers("/api/chat/agent-help").hasRole("DELIVERY")
 
                         // -------- Products --------
                         .requestMatchers(HttpMethod.GET, "/api/products/**").hasAnyRole("ADMIN", "USER")
